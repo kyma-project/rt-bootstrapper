@@ -23,3 +23,9 @@ webhooks:
     resources:
     - pods
   sideEffects: None
+  objectSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: NotIn
+        values:
+          - rt-bootstrapper
