@@ -1,7 +1,7 @@
 module-name: rt-bootstrapper
 kind: kyma
 bdba:
-  - europe-docker.pkg.dev/kyma-project/prod/rt-bootstrapper:latest
+  - europe-docker.pkg.dev/kyma-project/prod/rt-bootstrapper:0.1.0
 mend:
   language: golang-mod
   exclude:
