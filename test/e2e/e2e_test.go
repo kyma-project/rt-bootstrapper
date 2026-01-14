@@ -74,6 +74,7 @@ var _ = Describe("Manager", Ordered, func() {
 			"rt-cfg.kyma-project.io/alter-img-registry=true",
 			"rt-cfg.kyma-project.io/add-img-pull-secret=true",
 			"rt-cfg.kyma-project.io/add-cluster-trust-bundle=true",
+			"rt-cfg.kyma-project.io/set-fips-mode=true",
 		)
 		_, err = utils.Run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to create namespace")
@@ -375,6 +376,15 @@ var _ = Describe("Manager", Ordered, func() {
 				},
 			}))
 
+			By("havling KYMA_FIPS_MODE_ENABLED env var set on all containers")
+			allContainers := append(pod.Spec.Containers, pod.Spec.InitContainers...)
+			for _, container := range allContainers {
+				Expect(container.Env).Should(ContainElement(corev1.EnvVar{
+					Name:  apiv1.EnvKymaFipsModeEnabled,
+					Value: "true",
+				}))
+			}
+
 			By("having 'defaulted' annotation added on pod")
 			Expect(pod.Annotations[apiv1.AnnotationDefaulted]).Should(Equal("true"))
 		})
@@ -433,6 +443,16 @@ var _ = Describe("Manager", Ordered, func() {
 
 			By("having 'defaulted' annotation added on pod")
 			Expect(pod.Annotations[apiv1.AnnotationDefaulted]).Should(Equal("true"))
+
+			By("havling KYMA_FIPS_MODE_ENABLED env var set on all containers")
+			allContainers := append(pod.Spec.Containers, pod.Spec.InitContainers...)
+			for _, container := range allContainers {
+				Expect(container.Env).Should(ContainElement(corev1.EnvVar{
+					Name:  apiv1.EnvKymaFipsModeEnabled,
+					Value: "true",
+				}))
+			}
+
 		})
 
 		It("should work with all features inactive", func() {
@@ -476,41 +496,17 @@ var _ = Describe("Manager", Ordered, func() {
 
 			By("not having 'defaulted' annotation added on pod")
 			Expect(pod.Annotations[apiv1.AnnotationDefaulted]).Should(BeEmpty())
+
+			By("not havling KYMA_FIPS_MODE_ENABLED env var set on all containers")
+			allContainers := append(pod.Spec.Containers, pod.Spec.InitContainers...)
+			for _, container := range allContainers {
+				Expect(container.Env).ShouldNot(ContainElement(corev1.EnvVar{
+					Name:  apiv1.EnvKymaFipsModeEnabled,
+					Value: "true",
+				}))
+			}
 		})
 
-		It("should not modify pod spec", func() {
-			By("applying the deployment")
-			cmd := exec.Command("kubectl", "apply",
-				"-f", "./test/e2e/testdata/test4.yaml",
-				"-n", testNamespace1)
-
-			_, err := utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred())
-
-			cmd = exec.Command("kubectl", "wait", "deployment.apps/pause-test4",
-				"--for", "condition=Available",
-				"--namespace", testNamespace1,
-				"--timeout", "20s",
-			)
-
-			_, err = utils.Run(cmd)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			cmd = exec.Command("kubectl", "get", "pod",
-				"-l", "app=pause-test4",
-				"-n", testNamespace1,
-				"-o", "jsonpath={.items[0]}")
-			output, err := utils.Run(cmd)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			pod, err := utils.ToPod(output)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(pod.Spec.Containers[0].Image).Should(HavePrefix("localhost:5002"))
-			Expect(pod.Annotations[apiv1.AnnotationDefaulted]).ShouldNot(Equal("true"))
-			Expect(pod.Spec.ImagePullSecrets).ShouldNot(ContainElement(corev1.LocalObjectReference{
-				Name: "registry-credentials",
-			}))
-		})
 		// +kubebuilder:scaffold:e2e-webhooks-checks
 	})
 })

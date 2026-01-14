@@ -15,6 +15,7 @@ spec:
         rt-cfg.kyma-project.io/alter-img-registry: "true"
         rt-cfg.kyma-project.io/add-img-pull-secret: "true"
         rt-cfg.kyma-project.io/add-cluster-trust-bundle: "true"
+        rt-cfg.kyma-project.io/set-fips-mode: "true"
       labels:
         app: pause-test1
     spec:
