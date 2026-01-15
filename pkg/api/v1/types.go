@@ -14,8 +14,10 @@ const (
 	AnnotationAlterImgRegistry      = "rt-cfg.kyma-project.io/alter-img-registry"
 	AnnotationSetPullSecret         = "rt-cfg.kyma-project.io/add-img-pull-secret"
 	AnnotationAddClusterTrustBundle = "rt-cfg.kyma-project.io/add-cluster-trust-bundle"
+	AnnotationSetFipsMode           = "rt-cfg.kyma-project.io/set-fips-mode"
 	AnnotationDefaulted             = "rt-bootstrapper.kyma-project.io/defaulted"
 	FiledManager                    = "rt-bootstrapper"
+	EnvKymaFipsModeEnabled          = "KYMA_FIPS_MODE_ENABLED"
 )
 
 type NamespaceFeatures map[string][]string

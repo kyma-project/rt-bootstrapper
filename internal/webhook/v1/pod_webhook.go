@@ -42,6 +42,7 @@ func SetupPodWebhookWithManager(mgr ctrl.Manager, cfg *apiv1.Config) error {
 
 	d1 := BuildPodDefaulterAddImagePullSecrets(cfg.ImagePullSecretName, nsf)
 	d2 := BuildPodDefaulterAlterImgRegistry(cfg.Overrides, nsf)
+	d3 := BuildDefaulterFipsMode(nsf)
 
 	getNamespace := func(ctx context.Context, name string) (map[string]string, error) {
 		var ns corev1.Namespace
@@ -64,6 +65,7 @@ func SetupPodWebhookWithManager(mgr ctrl.Manager, cfg *apiv1.Config) error {
 		defaulters: []func(*corev1.Pod, map[string]string) (bool, error){
 			d1,
 			d2,
+			d3,
 		},
 		GetNsAnnotations: getNamespace,
 	}
@@ -71,8 +73,8 @@ func SetupPodWebhookWithManager(mgr ctrl.Manager, cfg *apiv1.Config) error {
 	// conditional defaulters
 
 	if cfg.ClusterTrustBundleMapping != nil {
-		d3 := BuildDefaulterAddClusterTrustBundle(*cfg.ClusterTrustBundleMapping, nsf)
-		defaulter.defaulters = append(defaulter.defaulters, d3)
+		d4 := BuildDefaulterAddClusterTrustBundle(*cfg.ClusterTrustBundleMapping, nsf)
+		defaulter.defaulters = append(defaulter.defaulters, d4)
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).For(&corev1.Pod{}).
