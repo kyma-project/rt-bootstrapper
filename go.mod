@@ -7,7 +7,7 @@ require (
 	github.com/go-playground/validator/v10 v10.28.0
 	github.com/google/uuid v1.6.0
 	github.com/onsi/ginkgo/v2 v2.27.2
-	github.com/onsi/gomega v1.38.2
+	github.com/onsi/gomega v1.39.0
 	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.35.0
 	k8s.io/apimachinery v0.35.0
