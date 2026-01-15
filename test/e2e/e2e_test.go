@@ -376,7 +376,7 @@ var _ = Describe("Manager", Ordered, func() {
 				},
 			}))
 
-			By("havling KYMA_FIPS_MODE_ENABLED env var set on all containers")
+			By("having KYMA_FIPS_MODE_ENABLED env var set on all containers")
 			allContainers := append(pod.Spec.Containers, pod.Spec.InitContainers...)
 			for _, container := range allContainers {
 				Expect(container.Env).Should(ContainElement(corev1.EnvVar{
@@ -444,7 +444,7 @@ var _ = Describe("Manager", Ordered, func() {
 			By("having 'defaulted' annotation added on pod")
 			Expect(pod.Annotations[apiv1.AnnotationDefaulted]).Should(Equal("true"))
 
-			By("havling KYMA_FIPS_MODE_ENABLED env var set on all containers")
+			By("having KYMA_FIPS_MODE_ENABLED env var set on all containers")
 			allContainers := append(pod.Spec.Containers, pod.Spec.InitContainers...)
 			for _, container := range allContainers {
 				Expect(container.Env).Should(ContainElement(corev1.EnvVar{

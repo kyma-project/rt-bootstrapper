@@ -33,8 +33,7 @@ func BuildDefaulterFipsMode(nsf apiv1.NamespaceFeatures) PodDefaulter {
 				continue
 			}
 			// env variable already exists and has the same value
-			if c.Env[index].Name == apiv1.EnvKymaFipsModeEnabled &&
-				cs[i].Env[index].Value == "true" {
+			if cs[i].Env[index].Value == "true" {
 				slog.Debug("env variable already exists",
 					"name", apiv1.EnvKymaFipsModeEnabled,
 				)
