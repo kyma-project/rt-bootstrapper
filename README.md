@@ -7,6 +7,8 @@
 
 # RT Bootstrapper
 
+Test if it will not trigger vulncheck
+
 This repository contains the source code for the RT Bootstrapper Kyma component used to configure Kyma runtime components running in markets with individual infrastructure setups.
 
 ## Overview
