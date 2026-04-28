@@ -39,8 +39,10 @@ To enable RT Bootstrapper in your Kyma cluster, apply the release manifest using
 ```bash
 kubectl apply -f https://github.com/kyma-project/rt-bootstrapper/releases/latest/download/rt-bootstrapper.yaml
 ```
-## Architectural Decisions
-See the [Architectural Decisions](./docs/contributor/architectural-decisions.md) file.
+## Architectural Documentation
+
+See [README.md](./docs/contributor/README.md) in `docs/contributor` folder.
+
 ## Development
 
 ### Prerequisites
