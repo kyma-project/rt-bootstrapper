@@ -7,21 +7,23 @@ metadata:
   labels:
     app.kubernetes.io/name: rt-bootstrapper
     app.kubernetes.io/managed-by: kustomize
-  name: allow-metrics-traffic
-  namespace: system
+  name: kyma-project.io--rt-bootstrapper-allow-metrics-traffic
+  namespace: kyma-system
 spec:
   podSelector:
     matchLabels:
-      control-plane: controller-manager
       app.kubernetes.io/name: rt-bootstrapper
   policyTypes:
     - Ingress
   ingress:
     # This allows ingress traffic from any namespace with the label metrics: enabled
     - from:
-      - namespaceSelector:
+      - podSelector:
           matchLabels:
-            metrics: enabled  # Only from namespaces with this label
+            networking.kyma-project.io/metrics-scraping: allowed
+        namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: kyma-system
       ports:
-        - port: 8443
+        - port: 8080
           protocol: TCP

@@ -7,21 +7,15 @@ metadata:
   labels:
     app.kubernetes.io/name: rt-bootstrapper
     app.kubernetes.io/managed-by: kustomize
-  name: allow-webhook-traffic
-  namespace: system
+  name: kyma-project.io--ingress-allow-webhook-traffic
+  namespace: kyma-system
 spec:
   podSelector:
     matchLabels:
-      control-plane: controller-manager
       app.kubernetes.io/name: rt-bootstrapper
   policyTypes:
     - Ingress
   ingress:
-    # This allows ingress traffic from any namespace with the label webhook: enabled
-    - from:
-      - namespaceSelector:
-          matchLabels:
-            webhook: enabled # Only from namespaces with this label
-      ports:
-        - port: 443
+    - ports:
+        - port: 9443
           protocol: TCP

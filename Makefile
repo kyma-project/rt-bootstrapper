@@ -73,6 +73,23 @@ K3D_ARGS  ?= --k3s-arg '--kube-apiserver-arg=feature-gates=ClusterTrustBundle=tr
 setup-docker-registry:
 	./hack/rt-e2e-tests/setup-k3d-registry-bootstrapper.sh
 
+.PHONY: install-calico
+install-calico: ## Install Calico CNI for proper NetworkPolicy support.
+	@echo "::group::install-calico"
+	@echo "Waiting for Kubernetes API server..."
+	@until kubectl get nodes >/dev/null 2>&1; do sleep 2; done
+	kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.31.3/manifests/operator-crds.yaml
+	kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.31.3/manifests/tigera-operator.yaml
+	kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.31.3/manifests/custom-resources.yaml
+	kubectl rollout status -n kube-system deployment coredns --timeout=300s
+	kubectl rollout status deployment tigera-operator -n tigera-operator --timeout=300s
+	kubectl patch installation default --type=merge \
+		-p '{"spec":{"cni":{"type":"Calico", "binDir":"/var/lib/rancher/k3s/data/cni","confDir":"/var/lib/rancher/k3s/agent/etc/cni/net.d"}}}'
+	@until kubectl get daemonset calico-node -n calico-system >/dev/null 2>&1; do sleep 2; done
+	kubectl rollout status daemonset calico-node -n calico-system --timeout=300s
+	@echo "::endgroup::"
+
+
 .PHONY: setup-test-e2e
 setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
 	@command -v $(K3D) >/dev/null 2>&1 || { \
@@ -88,7 +105,7 @@ setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
 	esac
 
 .PHONY: test-e2e
-test-e2e: setup-test-e2e setup-docker-registry manifests generate fmt vet ## manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using k3d.
+test-e2e: setup-test-e2e install-calico setup-docker-registry manifests generate fmt vet ## manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using k3d.
 	K3D=$(K3D) K3D_CLUSTER=$(K3D_CLUSTER) go test -tags=e2e ./test/e2e/ -v -ginkgo.v
 #	$(MAKE) cleanup-test-e2e
 
