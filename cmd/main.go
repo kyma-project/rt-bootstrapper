@@ -25,6 +25,7 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"slices"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -89,6 +90,7 @@ func main() {
 	var secretSyncIntervalOpt string
 	var configMapName string
 	var configMapNamespace string
+	var landscape string
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -114,6 +116,7 @@ func main() {
 	flag.StringVar(&configMapName, "config-map-name", "rt-bootstrapper-config", "The name of the config map containing rt-bootstrapper configuration")
 	flag.StringVar(&configMapNamespace, "config-map-namespace", "kyma-system", "The namespace of the config-map containing rt-bootstrapper configuration.")
 	flag.StringVar(&secretSyncIntervalOpt, "secret-sync-interval", "1m", "The duration of secret synchronisation.")
+	flag.StringVar(&landscape, "landscape", "", "The landscape identifier to inject into workload pods (e.g., NS2, CN).")
 
 	opts := zap.Options{
 		Development: true,
@@ -268,11 +271,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	if slices.Contains(cfg.AvailableFeatures, apiv1.AnnotationSetLandscape) && landscape == "" {
+		setupLog.Error(fmt.Errorf("--landscape flag is required when %s is in availableFeatures", apiv1.AnnotationSetLandscape), "invalid configuration")
+		os.Exit(1)
+	}
+
 	whOpts := webhook_v1.SetupPodWebhookWithManagerOpts{
 		AvailableFeatures:        cfg.AvailableFeatures,
 		NamespaceDefaultFeatures: cfg.NamespaceDefaultFeatures,
 		GetConfig:                readConfig,
 		ImagePullSecretName:      imagePullSecretName,
+		Landscape:                landscape,
 	}
 
 	if err := webhook_v1.SetupPodWebhookWithManager(mgr, whOpts); err != nil {

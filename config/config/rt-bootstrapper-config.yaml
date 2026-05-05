@@ -16,7 +16,8 @@ data:
         "rt-cfg.kyma-project.io/alter-img-registry",
         "rt-cfg.kyma-project.io/add-img-pull-secret",
         "rt-cfg.kyma-project.io/add-cluster-trust-bundle",
-        "rt-cfg.kyma-project.io/set-fips-mode"
+        "rt-cfg.kyma-project.io/set-fips-mode",
+        "rt-cfg.kyma-project.io/set-landscape"
       ],
       "namespaceFeatures": {
         "kyma-system": [

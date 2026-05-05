@@ -60,6 +60,7 @@ spec:
           - --config-map-name=rt-bootstrapper-config
           - --config-map-namespace=kyma-system
           - --health-probe-bind-address=:8081
+          - --landscape=TEST
         image: controller:latest
         name: manager
         ports: []

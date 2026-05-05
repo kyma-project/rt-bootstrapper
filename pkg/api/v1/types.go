@@ -18,11 +18,13 @@ const (
 	AnnotationSetPullSecret         = "rt-cfg.kyma-project.io/add-img-pull-secret"
 	AnnotationAddClusterTrustBundle = "rt-cfg.kyma-project.io/add-cluster-trust-bundle"
 	AnnotationSetFipsMode           = "rt-cfg.kyma-project.io/set-fips-mode"
+	AnnotationSetLandscape          = "rt-cfg.kyma-project.io/set-landscape"
 	AnnotationAll                   = "rt-cfg.kyma-project.io/all"
 	AnnotationModified              = "rt-bootstrapper.kyma-project.io/modified"
 	FiledManager                    = "rt-bootstrapper"
 	EnvKymaFipsModeEnabled          = "KYMA_FIPS_MODE_ENABLED"
 	EnvFipsModeEnabled              = "FIPS_MODE_ENABLED"
+	EnvKymaLandscape                = "KYMA_LANDSCAPE"
 	ConfigMapKey                    = "rt-bootstrapper-config.json"
 )
 
@@ -32,6 +34,7 @@ var KnownFeatureKeys = []string{
 	AnnotationSetPullSecret,
 	AnnotationAddClusterTrustBundle,
 	AnnotationSetFipsMode,
+	AnnotationSetLandscape,
 }
 
 type NamespaceFeatures map[string][]string

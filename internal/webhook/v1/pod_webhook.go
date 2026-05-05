@@ -35,6 +35,7 @@ type SetupPodWebhookWithManagerOpts struct {
 	AvailableFeatures        []string
 	NamespaceDefaultFeatures func(string) map[string]string
 	ImagePullSecretName      string
+	Landscape                string
 	GetConfig
 }
 
@@ -50,6 +51,7 @@ func SetupPodWebhookWithManager(mgr ctrl.Manager, opts SetupPodWebhookWithManage
 		{annotation: apiv1.AnnotationSetPullSecret, defaulter: BuildPodDefaulterAddImagePullSecrets(opts.ImagePullSecretName)},
 		{annotation: apiv1.AnnotationAddClusterTrustBundle, defaulter: BuildDefaulterAddClusterTrustBundle()},
 		{annotation: apiv1.AnnotationSetFipsMode, defaulter: BuildDefaulterFipsMode()},
+		{annotation: apiv1.AnnotationSetLandscape, defaulter: BuildDefaulterSetLandscape(opts.Landscape)},
 	}
 
 	// prepare available defaulters

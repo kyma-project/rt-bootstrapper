@@ -198,5 +198,50 @@ var _ = Describe("Pod Webhook", func() {
 				corev1.LocalObjectReference{Name: testPullSecret},
 			))
 		})
+
+		It("Should inject landscape env var", func() {
+			d5 := BuildDefaulterSetLandscape("NS2")
+			cfgLandscape := &apiv1.Config{
+				NamespaceFeatures: &apiv1.NamespaceFeatures{},
+				Overrides: map[string]string{
+					"test.com":      testRegistryName,
+					"test.com:2000": testRegistryName,
+				},
+			}
+			defaulterLandscape := podCustomDefaulter{
+				availableFeatures: []string{
+					apiv1.AnnotationSetLandscape,
+				},
+				defaulters: []PodDefaulter{
+					d5,
+				},
+				GetNsAnnotations: func(_ context.Context, name string) (map[string]string, error) {
+					return nil, nil
+				},
+				GetConfig: func(_ context.Context) (*apiv1.Config, error) {
+					return cfgLandscape, nil
+				},
+				namespaceDefaultFeatures: cfgLandscape.NamespaceDefaultFeatures,
+			}
+
+			By(fmt.Sprintf("adding '%s' annotation", apiv1.AnnotationSetLandscape))
+			pod := getTestPod(
+				map[string]string{apiv1.AnnotationSetLandscape: "true"})
+
+			By("calling the Default method to set landscape")
+			err := defaulterLandscape.Default(ctx, pod)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("checking that the landscape env var was added")
+			for _, container := range pod.Spec.Containers {
+				Expect(container.Env).Should(ContainElement(corev1.EnvVar{
+					Name:  apiv1.EnvKymaLandscape,
+					Value: "NS2",
+				}))
+			}
+
+			By("checking that the modified annotation was set")
+			Expect(pod.Annotations[apiv1.AnnotationModified]).Should(Equal("true"))
+		})
 	})
 })

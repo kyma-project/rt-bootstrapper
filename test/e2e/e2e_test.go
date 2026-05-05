@@ -77,6 +77,7 @@ var _ = Describe("Manager", Ordered, func() {
 			"rt-cfg.kyma-project.io/add-img-pull-secret=true",
 			"rt-cfg.kyma-project.io/add-cluster-trust-bundle=true",
 			"rt-cfg.kyma-project.io/set-fips-mode=true",
+			"rt-cfg.kyma-project.io/set-landscape=true",
 		)
 		_, err = utils.Run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to create namespace")
@@ -403,6 +404,14 @@ var _ = Describe("Manager", Ordered, func() {
 				}))
 			}
 
+			By("having KYMA_LANDSCAPE env var set on all containers")
+			for _, container := range allContainers {
+				Expect(container.Env).Should(ContainElement(corev1.EnvVar{
+					Name:  apiv1.EnvKymaLandscape,
+					Value: "TEST",
+				}))
+			}
+
 			By("having 'modified' annotation added on pod")
 			Expect(pod.Annotations[apiv1.AnnotationModified]).Should(Equal("true"))
 		})
@@ -469,6 +478,14 @@ var _ = Describe("Manager", Ordered, func() {
 					Value: "true",
 				}))
 			}
+
+			By("having KYMA_LANDSCAPE env var set on all containers")
+			for _, container := range allContainers {
+				Expect(container.Env).Should(ContainElement(corev1.EnvVar{
+					Name:  apiv1.EnvKymaLandscape,
+					Value: "TEST",
+				}))
+			}
 		})
 
 		It("should work with all features inactive", func() {
@@ -518,6 +535,14 @@ var _ = Describe("Manager", Ordered, func() {
 				Expect(container.Env).ShouldNot(ContainElement(corev1.EnvVar{
 					Name:  apiv1.EnvKymaFipsModeEnabled,
 					Value: "true",
+				}))
+			}
+
+			By("not having KYMA_LANDSCAPE env var set on any container")
+			for _, container := range allContainers {
+				Expect(container.Env).ShouldNot(ContainElement(corev1.EnvVar{
+					Name:  apiv1.EnvKymaLandscape,
+					Value: "TEST",
 				}))
 			}
 		})
