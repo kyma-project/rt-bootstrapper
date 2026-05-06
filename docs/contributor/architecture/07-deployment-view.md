@@ -1,6 +1,6 @@
 # Deployment View
 
-## Infrastructure Level 1 — Kyma Runtime Cluster
+## Infrastructure Level 1 – Kyma Runtime Cluster
 
 Runtime Bootstrapper runs as a single Deployment inside the `kyma-system` namespace of every Kyma runtime cluster. KIM is responsible for deploying and updating it.
 
@@ -52,7 +52,7 @@ Runtime Bootstrapper runs as a single Deployment inside the `kyma-system` namesp
 | CA trust chain | `ClusterTrustBundle` (name configured in ConfigMap) | cluster-scoped |
 | Scheduling priority | `PriorityClass` `rt-bootstrapper-priority-class` (value 2 100 000) | cluster-scoped |
 
-## Infrastructure Level 2 — Kustomize Overlays
+## Infrastructure Level 2 – Kustomize Overlays
 
 Two kustomize overlays produce different install manifests:
 

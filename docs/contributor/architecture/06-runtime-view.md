@@ -1,6 +1,6 @@
 # Runtime View
 
-## Scenario 1 — Pod Creation (Webhook Manipulation)
+## Scenario 1 – Pod Creation (Webhook Manipulation)
 
 This is the primary runtime scenario: a Kyma module operator creates a Pod in an opted-in namespace.
 
@@ -41,7 +41,7 @@ KLM/Operator      API Server     RT Bootstrapper Webhook    Kubernetes API
 
 ---
 
-## Scenario 2 — Certificate Rotation
+## Scenario 2 – Certificate Rotation
 
 When cert-manager renews the webhook's TLS certificate and writes the new files to the cert directory:
 
@@ -70,7 +70,7 @@ cert-manager      Filesystem      certwatcher      RT Bootstrapper      API Serv
 
 ---
 
-## Scenario 3 — Pull Secret Synchronization (Master Secret Updated)
+## Scenario 3 – Pull Secret Synchronization (Master Secret Updated)
 
 When KIM pushes an updated pull secret to `kyma-system`:
 
@@ -103,7 +103,7 @@ KIM            API Server       Secret Controller       API Server
 
 ---
 
-## Scenario 4 — New Namespace Created
+## Scenario 4 – New Namespace Created
 
 When any namespace is created in the cluster:
 

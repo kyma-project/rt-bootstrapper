@@ -74,7 +74,7 @@ The binary is built with `GOFIPS140=v1.0.0` (enforced in the Makefile for all `g
 ## Error Handling
 
 - **Webhook panics**: `podCustomDefaulter.Default()` defers a `recover()` that converts any panic into a returned error, which causes the API server to reject the Pod admission with an informative error rather than crashing the process.
-- **ConfigMap not found at startup**: The process exits with code 1 if the ConfigMap cannot be read at startup. This is intentional — a missing or invalid config is a misconfiguration that must be resolved before the webhook can safely operate.
+- **ConfigMap not found at startup**: The process exits with code 1 if the ConfigMap cannot be read at startup. This is intentional – a missing or invalid config is a misconfiguration that must be resolved before the webhook can safely operate.
 - **Secret sync errors**: When patching a secret in one namespace fails, the error is recorded but the controller continues patching the remaining namespaces. All errors are collected and returned as a combined error, triggering controller-runtime's standard exponential backoff retry.
 - **Certificate patch conflicts**: `BuildUpdateCABundle` wraps the patch in `retry.RetryOnConflict` with `retry.DefaultBackoff`.
 

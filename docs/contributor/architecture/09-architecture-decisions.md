@@ -1,6 +1,6 @@
 # Architecture Decisions
 
-## ADR-001 — Intercept Only Pods, Not Higher-Level Resources
+## ADR-001 – Intercept Only Pods, Not Higher-Level Resources
 
 **Status:** Accepted
 
@@ -14,7 +14,7 @@
 
 ---
 
-## ADR-002 — failurePolicy: Ignore (Non-Blocking Webhook)
+## ADR-002 – failurePolicy: Ignore (Non-Blocking Webhook)
 
 **Status:** Accepted
 
@@ -28,7 +28,7 @@
 
 ---
 
-## ADR-003 — Configuration via ConfigMap, No CRD
+## ADR-003 – Configuration via ConfigMap, No CRD
 
 **Status:** Accepted
 
@@ -42,7 +42,7 @@
 
 ---
 
-## ADR-004 — Config Re-read on Every Webhook Invocation
+## ADR-004 – Config Re-read on Every Webhook Invocation
 
 **Status:** Accepted
 
@@ -56,7 +56,7 @@
 
 ---
 
-## ADR-005 — Self-Managed caBundle via certwatcher Callback
+## ADR-005 – Self-Managed caBundle via certwatcher Callback
 
 **Status:** Accepted
 
@@ -70,7 +70,7 @@
 
 ---
 
-## ADR-006 — Secret Synchronization as an Internal Controller
+## ADR-006 – Secret Synchronization as an Internal Controller
 
 **Status:** Accepted
 

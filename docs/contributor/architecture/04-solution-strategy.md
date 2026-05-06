@@ -4,7 +4,7 @@
 
 ### Kubernetes Mutating Admission Webhook
 
-Pod manipulation is implemented as a mutating admission webhook rather than as a controller that patches running Pods. The webhook intercepts a Pod at the earliest possible point — before `kubelet` ever sees the final spec — so the Pod starts correctly on the first attempt and no post-hoc remediation is needed for the normal path.
+Pod manipulation is implemented as a mutating admission webhook rather than as a controller that patches running Pods. The webhook intercepts a Pod at the earliest possible point – before `kubelet` ever sees the final spec – so the Pod starts correctly on the first attempt and no post-hoc remediation is needed for the normal path.
 
 ### Kubebuilder as the Foundation
 
@@ -14,9 +14,9 @@ The entire binary is using the [Kubebuilder framework](https://kubebuilder.io/) 
 
 Manipulations are activated by annotations at three layers, checked in order:
 
-1. **Pod annotation** — the `rt-cfg.kyma-project.io/*` annotations directly on the Pod template.
-2. **Namespace annotation** — the same annotation family on the Namespace resource itself.
-3. **Config-defined namespace defaults** — specified in `rt-bootstrapper-config.json`; these apply to all Pods in the listed namespaces regardless of any annotations.
+1. **Pod annotation** – the `rt-cfg.kyma-project.io/*` annotations directly on the Pod template.
+2. **Namespace annotation** – the same annotation family on the Namespace resource itself.
+3. **Config-defined namespace defaults** – specified in `rt-bootstrapper-config.json`; these apply to all Pods in the listed namespaces regardless of any annotations.
 
 The `rt-cfg.kyma-project.io/all` alias expands to the full set of features listed in `Config.AvailableFeatures`, allowing a single annotation to opt in to everything.
 

@@ -1,8 +1,8 @@
 # Building Block View
 
-## Level 1 — Overall System
+## Level 1 – Overall System
 
-![Level 1 — Overall System](assets/building-block-level1.svg)
+![Level 1 – Overall System](assets/building-block-level1.svg)
 
 | Building Block | Responsibility |
 |---|---|
@@ -12,22 +12,22 @@
 
 ---
 
-## Level 2 — Mutating Webhook
+## Level 2 – Mutating Webhook
 
 ```
 internal/webhook/
-├── server/          — Custom TLS webhook server with hot-reload and caBundle callback
-├── certificate/     — Patches MutatingWebhookConfiguration.caBundle on cert renewal
-├── k8s/             — Stateless helpers: image registry rewriting, ClusterTrustBundle volume types
+├── server/          – Custom TLS webhook server with hot-reload and caBundle callback
+├── certificate/     – Patches MutatingWebhookConfiguration.caBundle on cert renewal
+├── k8s/             – Stateless helpers: image registry rewriting, ClusterTrustBundle volume types
 └── v1/
-    ├── pod_webhook.go          — Registers the webhook; builds the annotation-dispatch chain
-    ├── pod_defaulters.go       — PodDefaulter implementations (registry, pull secret, trust bundle)
-    └── pod_defaulter_fips_mode.go — FIPS-mode environment-variable defaulter
+    ├── pod_webhook.go          – Registers the webhook; builds the annotation-dispatch chain
+    ├── pod_defaulters.go       – PodDefaulter implementations (registry, pull secret, trust bundle)
+    └── pod_defaulter_fips_mode.go – FIPS-mode environment-variable defaulter
 ```
 
 ### Webhook Server (`internal/webhook/server/`)
 
-A custom implementation of `sigs.k8s.io/controller-runtime/pkg/webhook.Server`. It wraps `certwatcher` to hot-reload TLS certificates from disk without restarting the process. When a new certificate is loaded, a user-supplied `Callback(tls.Certificate)` is invoked — in `cmd/main.go` this callback reads `ca.crt` from the cert directory and patches the `caBundle` of the `MutatingWebhookConfiguration`.
+A custom implementation of `sigs.k8s.io/controller-runtime/pkg/webhook.Server`. It wraps `certwatcher` to hot-reload TLS certificates from disk without restarting the process. When a new certificate is loaded, a user-supplied `Callback(tls.Certificate)` is invoked – in `cmd/main.go` this callback reads `ca.crt` from the cert directory and patches the `caBundle` of the `MutatingWebhookConfiguration`.
 
 - Listens on port `9443` (default), TLS 1.3 minimum, HTTP/2 disabled by default.
 - Exposes `StartedChecker()` as both the health and readiness probe.
@@ -63,37 +63,37 @@ Only defaulters whose annotation key appears in `Config.AvailableFeatures` are r
 
 Stateless functions with no Kubernetes client dependency:
 
-- `AlterPodImageRegistry(image, overrides)` — parses the image string, identifies whether a registry host is present, and applies the override map.
-- `Contains(l, r map[string]string)` — checks whether all key-value pairs in `r` are present in `l` (used for annotation matching).
-- `ClusterTrustBundle` struct — builds the `corev1.Volume` (projected) and `corev1.VolumeMount` for the trust bundle injection.
+- `AlterPodImageRegistry(image, overrides)` – parses the image string, identifies whether a registry host is present, and applies the override map.
+- `Contains(l, r map[string]string)` – checks whether all key-value pairs in `r` are present in `l` (used for annotation matching).
+- `ClusterTrustBundle` struct – builds the `corev1.Volume` (projected) and `corev1.VolumeMount` for the trust bundle injection.
 
 ---
 
-## Level 2 — Secret Controller
+## Level 2 – Secret Controller
 
 ```
 internal/controller/
-├── secret_controller.go         — Reconciler: syncs master secret to all namespaces
-├── create_ns_predicate.go       — Passes only Namespace create events (excludes master namespace)
-└── master_secret_predicate.go   — Passes only create/update events for the named master secret
+├── secret_controller.go         – Reconciler: syncs master secret to all namespaces
+├── create_ns_predicate.go       – Passes only Namespace create events (excludes master namespace)
+└── master_secret_predicate.go   – Passes only create/update events for the named master secret
 ```
 
 `SecretReconciler` watches two resource types via separate `Watches` calls, each filtered by a predicate:
 
 | Watch target | Predicate | Reconcile path |
 |---|---|---|
-| `corev1.Namespace` | `createNsPredicate` — create only, excludes master secret namespace | Creates a copy of the master secret in the new namespace. |
-| `corev1.Secret` | `masterSecret` — create/update only, name must match master secret; update only fires when `.dockerconfigjson` actually changed | If from `kyma-system`: iterates all namespaces and patches each one. If from another namespace: patches that single namespace's copy. Re-queues after `SecretSyncInterval`. |
+| `corev1.Namespace` | `createNsPredicate` – create only, excludes master secret namespace | Creates a copy of the master secret in the new namespace. |
+| `corev1.Secret` | `masterSecret` – create/update only, name must match master secret; update only fires when `.dockerconfigjson` actually changed | If from `kyma-system`: iterates all namespaces and patches each one. If from another namespace: patches that single namespace's copy. Re-queues after `SecretSyncInterval`. |
 
 All secret copies are created/updated with `client.Apply` (server-side apply), using `rt-bootstrapper` as the field manager.
 
 ---
 
-## Level 2 — Configuration API
+## Level 2 – Configuration API
 
 ```
 pkg/api/v1/
-└── types.go    — Config struct, feature constants, NewConfig(), validation
+└── types.go    – Config struct, feature constants, NewConfig(), validation
 ```
 
 `Config` (JSON, loaded from ConfigMap key `rt-bootstrapper-config.json`):

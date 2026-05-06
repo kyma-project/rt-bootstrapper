@@ -20,6 +20,6 @@ Runtime Bootstrapper sits inside a Kyma runtime cluster and acts as a transparen
 | Channel | Protocol | Direction |
 |---|---|---|
 | API server → webhook | HTTPS (TLS 1.3), port 9443 | Inbound |
-| Webhook → Kubernetes API | HTTPS (in-cluster) | Outbound — reads Namespace, ConfigMap; patches `MutatingWebhookConfiguration` |
-| Secret controller → Kubernetes API | HTTPS (in-cluster) | Outbound — reads/patches Secrets, lists Namespaces |
-| KIM → Kubernetes API | HTTPS | Outbound — manages webhook deployment; shares resources like pull-secrets, cluster trust bundles etc. |
+| Webhook → Kubernetes API | HTTPS (in-cluster) | Outbound – reads Namespace, ConfigMap; patches `MutatingWebhookConfiguration` |
+| Secret controller → Kubernetes API | HTTPS (in-cluster) | Outbound – reads/patches Secrets, lists Namespaces |
+| KIM → Kubernetes API | HTTPS | Outbound – manages webhook deployment; shares resources like pull-secrets, cluster trust bundles etc. |
