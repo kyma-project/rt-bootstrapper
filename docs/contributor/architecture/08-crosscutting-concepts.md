@@ -1,8 +1,8 @@
-# Cross-cutting Concepts
+# Cross-Cutting Concepts
 
 ## Configuration Model
 
-All runtime behaviour of Runtime Bootstrapper is governed by a single JSON document stored in the ConfigMap `rt-bootstrapper-config` under the key `rt-bootstrapper-config.json`. The shape is:
+All runtime behavior of Runtime Bootstrapper is governed by a single JSON document stored in the ConfigMap `rt-bootstrapper-config` under the key `rt-bootstrapper-config.json`. The shape is:
 
 ```json
 {
@@ -59,7 +59,7 @@ The secret controller uses server-side apply (`client.Apply`) for all patches, w
 ## TLS and Security
 
 - The webhook server enforces TLS 1.3 as the minimum version (`tls.VersionTLS13`).
-- HTTP/2 is disabled by default (`NextProtos: ["http/1.1"]`). It can be re-enabled with `--enable-http2` but this is not recommended.
+- HTTP/2 is disabled by default (`NextProtos: ["http/1.1"]`). It is recommended to keep HTTP/2 disabled; use `--enable-http2` only if required.
 - The `caBundle` in the `MutatingWebhookConfiguration` is kept in sync with the on-disk CA certificate by the certificate rotation mechanism; the API server can always verify the webhook's certificate.
 - The manager process never stores secrets in memory beyond the duration of a single reconcile loop invocation.
 

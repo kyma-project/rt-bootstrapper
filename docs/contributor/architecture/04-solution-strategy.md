@@ -20,7 +20,7 @@ Manipulations are activated by annotations at three layers, checked in order:
 
 The `rt-cfg.kyma-project.io/all` alias expands to the full set of features listed in `Config.AvailableFeatures`, allowing a single annotation to opt in to everything.
 
-This model means Kyma-managed namespaces (e.g. `kyma-system`, `istio-system` etc.) are handled silently because they are defined in the webhook configuration, while customers can self-service enable manipulations for their own namespaces or Pods.
+This model means Kyma-managed namespaces (for example, `kyma-system` and `istio-system`) are handled silently because they are defined in the webhook configuration, while customers can self-service enable manipulations for their own namespaces or Pods.
 
 ### Configuration Re-read Per Webhook Invocation
 
@@ -28,7 +28,7 @@ The webhook reads the `rt-bootstrapper-config` ConfigMap from the Kubernetes API
 
 ### Self-Managed Certificate Rotation via certwatcher
 
-The webhook server uses `controller-runtime/certwatcher` to watch the on-disk TLS certificate files. When a renewed certificate is written (e.g., by cert-manager), the watcher fires a callback that patches the `caBundle` field of the `MutatingWebhookConfiguration` automatically. No manual rotation step or pod restart is required. Automated renewal of the certificate is handled by [Gardener's cert-management](https://github.com/gardener/cert-management).
+The webhook server uses `controller-runtime/certwatcher` to watch the on-disk TLS certificate files. When a renewed certificate is written (for example, by cert-manager), the watcher fires a callback that patches the `caBundle` field of the `MutatingWebhookConfiguration` automatically. No manual rotation step or pod restart is required. Automated renewal of the certificate is handled by [Gardener's cert-management](https://github.com/gardener/cert-management).
 
 ### Secret Synchronization via a Dedicated Controller
 

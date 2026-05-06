@@ -50,7 +50,7 @@
 
 **Decision:** `GetConfig` is called on every Pod admission request, fetching the ConfigMap from the API server every time.
 
-**Rationale:** Configuration changes (e.g., adding a new namespace to `namespaceFeatures`) must take effect immediately without restarting the webhook. The additional latency of one API server GET per admission request is acceptable given that the API server response is served from etcd cache.
+**Rationale:** Configuration changes (for example, adding a new namespace to `namespaceFeatures`) must take effect immediately without restarting the webhook. The additional latency of one API server GET per admission request is acceptable given that the API server response is served from etcd cache.
 
 **Consequences:** Each webhook invocation performs one additional API server read. Under very high Pod creation rates this could be noticeable; at typical Kyma workload rates it is negligible.
 
@@ -78,6 +78,6 @@
 
 **Decision:** A `SecretReconciler` inside the Runtime Bootstrapper binary watches and mirrors the master pull secret to all namespaces.
 
-**Rationale:** Keeping the secret synchronization inside the same component makes Runtime Bootstrapper self-contained. KIM does not need to handle per-namespace secret management, and no additional tooling (e.g., Reflector, external-secrets) is required.
+**Rationale:** Keeping the secret synchronization inside the same component makes Runtime Bootstrapper self-contained. KIM does not need to handle per-namespace secret management, and no additional tooling (for example, Reflector or external-secrets) is required.
 
 **Consequences:** The controller performs a full namespace list on every master-secret update. In clusters with thousands of namespaces this is a broad LIST operation; acceptable given that pull secret updates are rare.
