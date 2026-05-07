@@ -1,0 +1,128 @@
+# Runtime View
+
+## Scenario 1 – Pod Creation (Webhook Manipulation)
+
+This is the primary runtime scenario: a Kyma module operator creates a Pod in an opted-in namespace.
+
+```
+KLM/Operator      API Server     RT Bootstrapper Webhook    Kubernetes API
+     │                 │                   │                        │
+     │── create Pod ──►│                   │                        │
+     │                 │── POST /mutate ──►│                        │
+     │                 │   (Pod JSON)      │                        │
+     │                 │                   │── GET Namespace ──────►│
+     │                 │                   │◄── namespace annot. ───│
+     │                 │                   │── GET ConfigMap ──────►│
+     │                 │                   │◄── rt-bootstrapper-cfg─│
+     │                 │                   │                        │
+     │                 │                   │  Evaluate annotations: │
+     │                 │                   │  1. namespaceFeatures  │
+     │                 │                   │  2. namespace annots.  │
+     │                 │                   │  3. Pod annotations    │
+     │                 │                   │                        │
+     │                 │                   │  Run active defaulters:│
+     │                 │                   │  • AlterImgRegistry    │
+     │                 │                   │  • AddImagePullSecrets │
+     │                 │                   │  • AddClusterTrustBndl │
+     │                 │                   │  • SetFipsMode         │
+     │                 │                   │                        │
+     │                 │◄── AdmissionResp  │                        │
+     │                 │    (JSONPatch)    │                        │
+     │                 │                   │                        │
+     │                 │  applies patch, creates Pod                │
+     │◄── Pod created ─│                   │                        │
+```
+
+**Notes:**
+- If the webhook cannot be reached, `failurePolicy: Ignore` causes the API server to admit the Pod unmodified.
+- The config is re-read from the API server on every invocation; there is no in-process cache.
+- A panic in any defaulter is recovered and returned as an admission error.
+- If no defaulter modifies the Pod, the response carries no patch (no-op admission).
+
+---
+
+## Scenario 2 – Certificate Rotation
+
+When cert-manager renews the webhook's TLS certificate and writes the new files to the cert directory:
+
+```
+cert-manager      Filesystem      certwatcher      RT Bootstrapper      API Server
+     │                 │                │                   │                  │
+     │── write tls.crt►│                │                   │                  │
+     │── write tls.key►│                │                   │                  │
+     │── write ca.crt ►│                │                   │                  │
+     │                 │                │                   │                  │
+     │                 │◄── fsnotify ───│                   │                  │
+     │                 │                │── reload cert ───►│                  │
+     │                 │                │   (tls.Certificate│                  │
+     │                 │                │                   │── Callback() ───►│
+     │                 │                │                   │   read ca.crt    │
+     │                 │                │                   │── GET MutatingWH►│
+     │                 │                │                   │◄── current cfg ──│
+     │                 │                │                   │── PATCH caBundle►│
+     │                 │                │                   │◄── OK ───────────│
+```
+
+**Notes:**
+- `certwatcher` watches the cert files using `fsnotify`; no polling.
+- `BuildUpdateCABundle` wraps the patch in a `RetryOnConflict` loop.
+- The patch uses server-side apply with `rt-bootstrapper-webhook` as the field manager.
+
+---
+
+## Scenario 3 – Pull Secret Synchronization (Master Secret Updated)
+
+When KIM pushes an updated pull secret to `kyma-system`:
+
+```
+KIM            API Server       Secret Controller       API Server
+ │                 │                  │                      │
+ │── PUT Secret ──►│                  │                      │
+ │   (kyma-system/ │                  │                      │
+ │   registry-creds│                  │                      │
+ │                 │── watch event ──►│                      │
+ │                 │   (masterSecret  │                      │
+ │                 │    predicate:    │                      │
+ │                 │    .dockerconfig │                      │
+ │                 │    changed)      │                      │
+ │                 │                  │── LIST Namespaces ──►│
+ │                 │                  │◄── all namespaces ───│
+ │                 │                  │                      │
+ │                 │                  │  for each namespace: │
+ │                 │                  │── PATCH Secret ─────►│
+ │                 │                  │   (server-side apply)│
+ │                 │                  │◄── OK ───────────────│
+ │                 │                  │                      │
+ │                 │                  │── requeue after 1m ──┤
+```
+
+**Notes:**
+- The `masterSecret` predicate fires only when `.dockerconfigjson` actually changed (byte-level comparison), suppressing no-op updates.
+- Each namespace patch uses server-side apply; concurrent updates from other sources are handled by field ownership.
+- After a full sync the reconciler re-queues itself after `SecretSyncInterval` (default: 1 minute) for periodic drift correction.
+
+---
+
+## Scenario 4 – New Namespace Created
+
+When any namespace is created in the cluster:
+
+```
+Any actor        API Server       Secret Controller       API Server
+    │                │                     │                      │
+    │── create NS ──►│                     │                      │
+    │                │── watch event ─────►│                      │
+    │                │  (createNsPredicate:|                      │
+    │                │    create only,     │                      │
+    │                │    not master NS).  │                      │
+    │                │                     │── GET master secret ►│
+    │                │                     │◄── registry-creds ───│
+    │                │                     │── PATCH Secret ─────►│
+    │                │                     │   (new NS,           │
+    │                │                     │    server-side apply)│
+    │                │                     │◄── OK ───────────────│
+```
+
+**Notes:**
+- The `createNsPredicate` explicitly excludes the `kyma-system` namespace (the master secret's home) to avoid a recursive patch loop.
+- If the master secret does not exist yet, the `GET` fails and the reconciliation returns an error, triggering standard controller-runtime backoff retry.
