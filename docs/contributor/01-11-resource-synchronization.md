@@ -43,7 +43,6 @@ The controller loop continuously watches the pull secret, `ClusterTrustBundle`, 
 
 Whenever one of these resources is created, updated, or deleted, the controller receives an event.
 
-
 ### Triggering Reconciliation Through Labeling
 
 Upon detecting a change, the controller loop performs the following steps:
