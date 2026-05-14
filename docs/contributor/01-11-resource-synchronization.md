@@ -1,6 +1,6 @@
 # Configuration Synchronization Using Controller Loop
 
-Runtime Bootstrapper synchronizes several resources between Kyma Control Plane (KCP) and Kyma runtimes. Some webhook features require specific resources to work (for example, a pull secret to access a private container registry, `ClusterTrustBundle` to interact with BTP backend services, etc.).
+Runtime Bootstrapper synchronizes several resources between Kyma Control Plane (KCP) and Kyma runtimes. Some webhook features require specific resources to work, for example, a pull secret to access a private container registry, `ClusterTrustBundle` to interact with BTP backend services, etc.
 
 > ### Note:
 > This document describes the current (interim) synchronization mechanism. The planned long-term replacement is captured in [ADR-007 – Direct Runtime Configuration Synchronization](adr/adr-007-direct-runtime-configuration-sync.md).
