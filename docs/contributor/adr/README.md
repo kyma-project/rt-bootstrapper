@@ -10,9 +10,9 @@ Several architectural decisions were made during the Kyma architecture meeting a
 
 1. Kyma Infrastructure Manager (KIM) deploys the webhook and shared resources to Kyma runtimes.
 2. The Kubernetes API server calls the manipulation webhook to intercept the Pod manifest before it gets applied.
-3. Runtime Bootstrapper modifies Pod manifests and applies landscape-specific adjustments (for example, adding a pull secret or rewriting image-registry hostnames).
+3. Runtime Bootstrapper modifies Pod manifests and applies landscape-specific adjustments (for example, adding a pull Secret or rewriting image-registry hostnames).
 4. The manipulated workload is adjusted to the landscape-specific setup.
-5. (Optional) The workload can use shared resources (for example, pull secrets and cluster trust bundles).
+5. (Optional) The workload can use shared resources (for example, pull Secrets and cluster trust bundles).
 
 
 ## Technical Requirements
@@ -63,7 +63,7 @@ The webhook supports multiple manipulations. The default configuration, managed 
 
 To adjust the workloads to landscape-specific setups, several resources must be published in the Kyma runtime:
 
-1. Pull secrets to authenticate at private container registries.
+1. Pull Secrets to authenticate at private container registries.
 2. `ClusterTrustBundle` used to store certificate chains (needed for secured backend communication).
 3. The configuration of the webhook itself.
 

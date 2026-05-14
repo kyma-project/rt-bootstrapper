@@ -48,4 +48,4 @@ Runtime Bootstrapper supports five manipulations that can be applied to Pod mani
 
 ## Resource Synchronization
 
-A dedicated controller loop handles the synchronization of shared resources (for example, pull secret, `ClusterTrustBundle`, or webhook configuration). For more information, see [Configuration Synchronization Using Controller Loop](./01-11-resource-synchronization.md).
+A dedicated controller loop handles the synchronization of shared resources (for example, pull Secret, `ClusterTrustBundle`, or webhook configuration). For more information, see [Configuration Synchronization Using Controller Loop](./01-11-resource-synchronization.md).

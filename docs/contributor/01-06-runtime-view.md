@@ -100,7 +100,7 @@ KIM            API Server       Secret Controller       API Server
  │                 │                  │── requeue after 1m ──┤
 ```
 
-![Kyma secret sync sequence](../assets/kyma-secret-sync-sequence.svg)
+![Kyma Secret sync sequence](../assets/kyma-secret-sync-sequence.svg)
 
 **Notes:**
 - The `masterSecret` predicate fires only when `.dockerconfigjson` actually changed (byte-level comparison), suppressing no-op updates.
@@ -121,7 +121,7 @@ Any actor        API Server       Secret Controller       API Server
     │                │  (createNsPredicate:|                      │
     │                │    create only,     │                      │
     │                │    not master NS).  │                      │
-    │                │                     │── GET master secret ►│
+    │                │                     │── GET master Secret ►│
     │                │                     │◄── registry-creds ───│
     │                │                     │── PATCH Secret ─────►│
     │                │                     │   (new NS,           │
@@ -132,5 +132,5 @@ Any actor        API Server       Secret Controller       API Server
 ![Namespace create sequence](../assets/kyma-ns-create-sequence.svg)
 
 **Notes:**
-- The `createNsPredicate` explicitly excludes the `kyma-system` namespace (the master secret's home) to avoid a recursive patch loop.
-- If the master secret does not exist yet, the `GET` fails and the reconciliation returns an error, triggering standard controller-runtime backoff retry.
+- The `createNsPredicate` explicitly excludes the `kyma-system` namespace (the master Secret's home) to avoid a recursive patch loop.
+- If the master Secret does not exist yet, the `GET` fails and the reconciliation returns an error, triggering standard controller-runtime backoff retry.

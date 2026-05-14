@@ -26,8 +26,8 @@ The webhook server uses `controller-runtime/certwatcher` to watch the on-disk TL
 
 ### Secret Synchronization Using a Dedicated Controller
 
-Rather than relying on KIM or an external tool to replicate the pull secret across namespaces, Runtime Bootstrapper includes its own controller that watches the master secret in `kyma-system` and mirrors it to all other namespaces. This keeps the component self-contained and ensures that a pull secret update propagates cluster-wide within the `SecretSyncInterval` (default: 1 minute) without external coordination.
+Rather than relying on KIM or an external tool to replicate the pull Secret across namespaces, Runtime Bootstrapper includes its own controller that watches the master Secret in `kyma-system` and mirrors it to all other namespaces. This keeps the component self-contained and ensures that a pull Secret update propagates cluster-wide within the `SecretSyncInterval` (default: 1 minute) without external coordination.
 
 ### Single Binary, Two Components
 
-Both the webhook server and the secret reconciler share one `cmd/main.go` entry point and one controller-manager process. This reduces operational overhead (one Deployment, one Service, one TLS certificate) while keeping the code strictly separated into `internal/webhook/` and `internal/controller/`.
+Both the webhook server and the Secret reconciler share one `cmd/main.go` entry point and one controller-manager process. This reduces operational overhead (one Deployment, one Service, one TLS certificate) while keeping the code strictly separated into `internal/webhook/` and `internal/controller/`.

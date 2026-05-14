@@ -13,7 +13,7 @@
 | `failurePolicy: Ignore` | A `MutatingWebhookConfiguration` setting that instructs the API server to admit the resource unchanged if the webhook cannot be reached. Runtime Bootstrapper uses this to remain non-blocking. |
 | FIPS 140 | A US government standard for cryptographic modules. Runtime Bootstrapper is built with `GOFIPS140=v1.0.0` to produce a FIPS-140-compliant binary. |
 | GetConfig | A function type (`func(context.Context) (*apiv1.Config, error)`) injected into the webhook defaulter and called on every admission request to fetch the current configuration. |
-| Kyma Control Plane (KCP) | The central control plane for all Kyma runtimes. Hosts the shared resources (pull secret, ClusterTrustBundle, webhook ConfigMap) that are synchronized to individual runtimes. |
+| Kyma Control Plane (KCP) | The central control plane for all Kyma runtimes. Hosts the shared resources (pull Secret, ClusterTrustBundle, webhook ConfigMap) that are synchronized to individual runtimes. |
 | Kyma Environment Broker (KEB) | The SAP BTP service that accepts Kyma runtime provisioning requests and creates Runtime CRs for KIM to act on. |
 | Kyma Infrastructure Manager (KIM) | Installs and manages the lifecycle of Kyma runtimes and the components deployed on them, including Runtime Bootstrapper. |
 | Kyma Lifecycle Manager (KLM) | Deploys Kyma modules into Kyma runtimes by managing Deployments, DaemonSets, and StatefulSets. Does not create bare Pods directly. |
@@ -27,7 +27,7 @@
 | rt-bootstrapper | The field manager name used for server-side apply patch operations by the Secret controller. |
 | rt-bootstrapper-webhook | The field manager name used for server-side apply patch operations on the `MutatingWebhookConfiguration` by the certificate updater. |
 | Runtime CR | A custom resource managed by KIM representing a single Kyma runtime instance. In the interim architecture, its labels are used as a signaling channel to trigger KIM reconciliation when shared resources change. |
-| `SecretSyncInterval` | The duration after which the Secret controller re-queues itself to perform a full drift-correction sync of the pull secret across all namespaces. Default: 1 minute. |
+| `SecretSyncInterval` | The duration after which the Secret controller re-queues itself to perform a full drift-correction sync of the pull Secret across all namespaces. Default: 1 minute. |
 | `set-landscape` | The feature annotation key `rt-cfg.kyma-project.io/set-landscape`; when activated, causes Runtime Bootstrapper to inject the `KYMA_LANDSCAPE` environment variable into every container. Requires the `--landscape` flag to be set at startup. |
 | server-side apply | A Kubernetes API server feature where the client declares intent and the server computes and applies the diff, tracking field ownership. Used by the Secret controller and the certificate updater. |
 | Kyma runtime | An instance of SAP BTP, Kyma runtime provisioned and managed by KIM. Runtime Bootstrapper runs inside each Kyma runtime. |

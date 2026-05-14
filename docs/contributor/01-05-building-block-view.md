@@ -7,7 +7,7 @@
 | Building Block    | Responsibility                                                                                                                                       |
 |-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Mutating webhook  | Intercepts Pod creation requests from the Kubernetes API server and applies landscape-specific modifications based on configuration and annotations. |
-| Secret controller | Watches the master image-pull secret in `kyma-system` and synchronizes it to all other cluster namespaces.                                           |
+| Secret controller | Watches the master image-pull Secret in `kyma-system` and synchronizes it to all other cluster namespaces.                                           |
 | Configuration API | Defines the `Config` struct, feature annotation constants, validation, and JSON (de)serialization for the webhook's runtime configuration.           |
 
 ---
@@ -21,7 +21,7 @@ internal/webhook/
 ├── k8s/             – Stateless helpers: image registry rewriting, ClusterTrustBundle volume types
 └── v1/
     ├── pod_webhook.go          – Registers the webhook; builds the annotation-dispatch chain
-    ├── pod_defaulters.go       – PodDefaulter implementations (registry, pull secret, trust bundle)
+    ├── pod_defaulters.go       – PodDefaulter implementations (registry, pull Secret, trust bundle)
     └── pod_defaulter_fips_mode.go – FIPS-mode environment-variable defaulter
 ```
 
@@ -57,7 +57,7 @@ The table below maps each manipulation to its Go constructor and feature annotat
 | Constructor                              | Feature annotation                                | What it does                                                                                            |
 |------------------------------------------|---------------------------------------------------|---------------------------------------------------------------------------------------------------------|
 | `BuildPodDefaulterAlterImgRegistry()`    | `rt-cfg.kyma-project.io/alter-img-registry`       | Rewrites the registry hostname of every container (and init-container) image using `cfg.Overrides`.     |
-| `BuildPodDefaulterAddImagePullSecrets()` | `rt-cfg.kyma-project.io/add-img-pull-secret`      | Appends the configured secret name to `spec.imagePullSecrets` if not already present.                   |
+| `BuildPodDefaulterAddImagePullSecrets()` | `rt-cfg.kyma-project.io/add-img-pull-Secret`      | Appends the configured Secret name to `spec.imagePullSecrets` if not already present.                   |
 | `BuildDefaulterAddClusterTrustBundle()`  | `rt-cfg.kyma-project.io/add-cluster-trust-bundle` | Adds a projected `ClusterTrustBundle` volume and mounts it into every container at the configured path. |
 | `BuildDefaulterFipsMode()`               | `rt-cfg.kyma-project.io/set-fips-mode`            | Sets `KYMA_FIPS_MODE_ENABLED=true` and `FIPS_MODE_ENABLED=true` in every init-container and container.  |
 | `BuildDefaulterSetLandscape()`           | `rt-cfg.kyma-project.io/set-landscape`            | Sets `KYMA_LANDSCAPE=<value>` in every init-container and container. The landscape value is supplied via the `--landscape` flag at startup. |
@@ -78,19 +78,19 @@ Stateless functions with no Kubernetes client dependency:
 
 ```
 internal/controller/
-├── secret_controller.go         – Reconciler: syncs master secret to all namespaces
+├── secret_controller.go         – Reconciler: syncs master Secret to all namespaces
 ├── create_ns_predicate.go       – Passes only Namespace create events (excludes master namespace)
-└── master_secret_predicate.go   – Passes only create/update events for the named master secret
+└── master_secret_predicate.go   – Passes only create/update events for the named master Secret
 ```
 
 `SecretReconciler` watches two resource types using separate `Watches` calls, each filtered by a predicate:
 
 | Watch target       | Predicate                                                                                                                       | Reconcile path                                                                                                                                                              |
 |--------------------|---------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `corev1.Namespace` | `createNsPredicate` – create only, excludes master secret namespace                                                             | Creates a copy of the master secret in the new namespace.                                                                                                                   |
-| `corev1.Secret`    | `masterSecret` – create/update only, name must match master secret; update only fires when `.dockerconfigjson` actually changed | If from `kyma-system`: iterates all namespaces and patches each one. If from another namespace: patches that single namespace's copy. Re-queues after `SecretSyncInterval`. |
+| `corev1.Namespace` | `createNsPredicate` – create only, excludes master Secret namespace                                                             | Creates a copy of the master secret in the new namespace.                                                                                                                   |
+| `corev1.Secret`    | `masterSecret` – create/update only, name must match master Secret; update only fires when `.dockerconfigjson` actually changed | If from `kyma-system`: iterates all namespaces and patches each one. If from another namespace: patches that single namespace's copy. Re-queues after `SecretSyncInterval`. |
 
-All secret copies are created/updated with `client.Apply` (server-side apply), using `rt-bootstrapper` as the field manager.
+All Secret copies are created/updated with `client.Apply` (server-side apply), using `rt-bootstrapper` as the field manager.
 
 ---
 

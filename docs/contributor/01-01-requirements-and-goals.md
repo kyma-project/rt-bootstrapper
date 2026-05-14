@@ -14,7 +14,7 @@ Runtime Bootstrapper solves this by intercepting every Pod creation in a Kyma ru
 | F-2     | Inject an image-pull Secret reference into Pod specs so that private registries can be accessed.                                                    |
 | F-3     | Mount a `ClusterTrustBundle` as a projected volume into every container, enabling TLS communication with BTP backend services.                      |
 | F-4     | Set FIPS-mode environment variables (`KYMA_FIPS_MODE_ENABLED`, `FIPS_MODE_ENABLED`) in every container.                                             |
-| F-5     | Continuously synchronize the image-pull secret from the `kyma-system` namespace into every other namespace in the cluster.                          |
+| F-5     | Continuously synchronize the image-pull Secret from the `kyma-system` namespace into every other namespace in the cluster.                          |
 | F-6     | Apply manipulations selectively based on an opt-in annotation model (namespace-level or Pod-level).                                                 |
 | F-7     | Read its runtime configuration from a ConfigMap; re-read it on every webhook invocation.                                                            |
 | F-8     | Inject the landscape identifier (`KYMA_LANDSCAPE`) as an environment variable into every container, enabling landscape-aware behavior in workloads. |
@@ -32,7 +32,7 @@ Runtime Bootstrapper solves this by intercepting every Pod creation in a Kyma ru
 
 | Role                              | Expectations                                                                                                                                                                                   |
 |-----------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Kyma Infrastructure Manager (KIM) | Installs and configures Runtime Bootstrapper on every provisioned Kyma runtime. Manages the lifecycle of the shared resources (pull secret, ConfigMap, `ClusterTrustBundle`) in `kyma-system`. |
+| Kyma Infrastructure Manager (KIM) | Installs and configures Runtime Bootstrapper on every provisioned Kyma runtime. Manages the lifecycle of the shared resources (pull Secret, ConfigMap, `ClusterTrustBundle`) in `kyma-system`. |
 | Kyma Lifecycle Manager (KLM)      | Deploys Kyma modules using high-level resources (Deployments, DaemonSets). Pods created from those resources are intercepted and adjusted by Runtime Bootstrapper without KLM involvement.     |
 | Kyma module teams                 | Their modules run unmodified inside landscapes with private registries and custom CA chains; Runtime Bootstrapper makes that possible transparently.                                           |
 | Kyma runtime operators/customers  | Can opt their own namespaces or Pods into the manipulation mechanism by adding the appropriate annotations.                                                                                    |

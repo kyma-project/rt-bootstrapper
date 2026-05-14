@@ -2,7 +2,7 @@
 
 **Status:** Proposed
 
-**Context:** The current synchronization mechanism (described in [Configuration Synchronization Using Controller Loop](../01-11-resource-synchronization.md)) uses a Kubernetes controller loop that detects changes to shared resources (pull secret, `ClusterTrustBundle`, webhook ConfigMap) and signals Kyma Infrastructure Manager (KIM) by applying a label to `Runtime` CR objects. KIM then reconciles the target runtimes to propagate the updated configuration. This label-based signaling introduces an indirect dependency on KIM and adds latency, since propagation depends on KIM's reconciliation cycle rather than being driven directly by the change.
+**Context:** The current synchronization mechanism (described in [Configuration Synchronization Using Controller Loop](../01-11-resource-synchronization.md)) uses a Kubernetes controller loop that detects changes to shared resources (pull Secret, `ClusterTrustBundle`, webhook ConfigMap) and signals Kyma Infrastructure Manager (KIM) by applying a label to `Runtime` CR objects. KIM then reconciles the target runtimes to propagate the updated configuration. This label-based signaling introduces an indirect dependency on KIM and adds latency, since propagation depends on KIM's reconciliation cycle rather than being driven directly by the change.
 
 **Decision:** Replace the label-based signaling mechanism with a direct synchronization approach. The controller loop will propagate configuration changes to Kyma runtimes without involving KIM:
 
@@ -22,7 +22,7 @@
 **Consequences:**
 
 * KIM and Runtime Bootstrapper must be decoupled: existing synchronization code in KIM is refactored and moved into Runtime Bootstrapper.
-* The controller loop must be extended to implement direct write logic for pull secrets, `ClusterTrustBundle`, and webhook ConfigMap on each runtime.
+* The controller loop must be extended to implement direct write logic for pull Secrets, `ClusterTrustBundle`, and webhook ConfigMap on each runtime.
 * KIM must no longer depend on `Runtime` CR label changes for these configuration types.
 * Versioning or compatibility checks are required to avoid partial updates during the transition.
-* Runtimes must be validated to safely accept live updates to trust bundles, pull secrets, and webhook configuration.
+* Runtimes must be validated to safely accept live updates to trust bundles, pull Secrets, and webhook configuration.

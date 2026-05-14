@@ -46,7 +46,7 @@ The `ENVTEST_K8S_VERSION` is derived automatically from the `k8s.io/api` module 
 **What is tested:**
 
 - **`internal/webhook/v1/`** — Full webhook dispatch loop: annotation evaluation across all three layers, each `PodDefaulter` applied in combination, and idempotency (calling `Default()` twice on the same Pod).
-- **`internal/controller/`** — `SecretReconciler`: master secret synced to new namespaces, master secret update propagated to all namespaces, predicate filtering (`createNsPredicate`, `masterSecret`).
+- **`internal/controller/`** — `SecretReconciler`: master Secret synced to new namespaces, master Secret update propagated to all namespaces, predicate filtering (`createNsPredicate`, `masterSecret`).
 - **`internal/webhook/server/`** — TLS server startup and readiness probe behaviour.
 
 ---
@@ -57,7 +57,7 @@ The `ENVTEST_K8S_VERSION` is derived automatically from the `k8s.io/api` module 
 
 **Build tag:** `e2e` — E2E test files are excluded from `make test` and only compiled when `-tags=e2e` is passed.
 
-E2E tests run the fully built manager image against a real k3d cluster with two local Docker registries: one open (unauthenticated) and one secured (requires pull-secret authentication). They validate the golden path for each manipulation and the full opt-in annotation model.
+E2E tests run the fully built manager image against a real k3d cluster with two local Docker registries: one open (unauthenticated) and one secured (requires pull-Secret authentication). They validate the golden path for each manipulation and the full opt-in annotation model.
 
 ### Prerequisites
 

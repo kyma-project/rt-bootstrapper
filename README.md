@@ -11,12 +11,12 @@ This repository contains the source code for the Runtime Bootstrapper (rt-bootst
 Runtime Bootstrapper contains two functional parts:
 
 - Kubernetes admission webhook that intercepts the creation of Pods.
-  It modifies the Pod specifications to include necessary configurations, modifies image paths to use the configured remote registry, and provides pull secrets with credentials.
+  It modifies the Pod specifications to include necessary configurations, modifies image paths to use the configured remote registry, and provides pull Secrets with credentials.
 
 - Kubernetes Controller that watches for namespaces and ensures that the Secrets with required credentials are present and synchronized in those namespaces.
 
 > [!NOTE]
-> This component is implemented as part of the SAP BTP, Kyma runtime delivery.  
+> This component is implemented as part of the SAP BTP, Kyma runtime delivery to specific landscapes with unique constraints.  
 > Installing Runtime Bootstrapper in Kyma runtime, or in a self-managed Kyma cluster may negatively impact your workloads.
 
 ## Installation
@@ -38,7 +38,7 @@ To enable Runtime Bootstrapper in your Kyma cluster, apply the release manifest 
 kubectl apply -f https://github.com/kyma-project/rt-bootstrapper/releases/latest/download/rt-bootstrapper.yaml
 ```
 
-## Architectural Documentation<!--??-->
+## Architectural Documentation
 
 For architecture details, see [Architectural Documentation of Runtime Bootstrapper](./docs/contributor/README.md).
 

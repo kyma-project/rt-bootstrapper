@@ -21,7 +21,7 @@ Runtime Bootstrapper runs as a single Deployment inside the `kyma-system` namesp
 │  │  └─────────────────────────────────────────────────────────┘ │    │
 │  │                                                              │    │
 │  │  Service:     rt-bootstrapper-webhook-service  (port 443)    │    │
-│  │  Secret:      registry-credentials  (master pull secret)     │    │
+│  │  Secret:      registry-credentials  (master pull Secret)     │    │
 │  │  ConfigMap:   rt-bootstrapper-config                         │    │
 │  │  CTrustBundle: (cluster-scoped)                              │    │
 │  │  Certificate: serving-cert  (cert-manager CR)                │    │
@@ -54,8 +54,8 @@ Runtime Bootstrapper runs as a single Deployment inside the `kyma-system` namesp
 | TLS certificate                     | `Certificate` `serving-cert` (cert-manager CR)                                  | `kyma-system`         |
 | Webhook registration                | `MutatingWebhookConfiguration` `rt-bootstrapper-mutating-webhook-configuration` | cluster-scoped        |
 | Runtime configuration               | `ConfigMap` `rt-bootstrapper-config` (key: `rt-bootstrapper-config.json`)       | `kyma-system`         |
-| Master pull secret                  | `Secret` `registry-credentials`                                                 | `kyma-system`         |
-| Synced pull secrets                 | `Secret` `registry-credentials`                                                 | every other namespace |
+| Master pull Secret                  | `Secret` `registry-credentials`                                                 | `kyma-system`         |
+| Synced pull Secrets                 | `Secret` `registry-credentials`                                                 | every other namespace |
 | CA trust chain                      | `ClusterTrustBundle` (name configured in ConfigMap)                             | cluster-scoped        |
 | Scheduling priority                 | `PriorityClass` `rt-bootstrapper-priority-class` (value 2 100 000)              | cluster-scoped        |
 | Metrics endpoint                    | `Service` `controller-manager-metrics-service` (port 8080)                      | `kyma-system`         |

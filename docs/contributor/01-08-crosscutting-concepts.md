@@ -52,19 +52,19 @@ The special annotation `rt-cfg.kyma-project.io/all: "true"` expands to all entri
 
 Every manipulation function is designed to be idempotent:
 - `AlterImgRegistry`: only rewrites if the source registry matches a key in `overrides`; if the image was already rewritten, it will match the destination host, which has no entry in `overrides` and so is left unchanged.
-- `AddImagePullSecrets`: uses `slices.Contains` to skip if the secret reference is already present.
+- `AddImagePullSecrets`: uses `slices.Contains` to skip if the Secret reference is already present.
 - `AddClusterTrustBundle`: checks the existing volumes/volumeMounts by name and value equality before adding or replacing.
 - `SetFipsMode`: checks each environment variable's current value before setting it.
 - `SetLandscape`: checks whether `KYMA_LANDSCAPE` is already set to the correct value; updates in-place if the value differs, and skips if it matches.
 
-The secret controller uses server-side apply (`client.Apply`) for all patches, which is inherently idempotent.
+The Secret controller uses server-side apply (`client.Apply`) for all patches, which is inherently idempotent.
 
 ## TLS and Security
 
 - The webhook server enforces TLS 1.3 as the minimum version (`tls.VersionTLS13`).
 - HTTP/2 is disabled by default (`NextProtos: ["http/1.1"]`). It is recommended to keep HTTP/2 disabled; use `--enable-http2` only if required.
 - The `caBundle` in the `MutatingWebhookConfiguration` is kept in sync with the on-disk CA certificate by the certificate rotation mechanism; the API server can always verify the webhook's certificate.
-- The manager process never stores secrets in memory beyond the duration of a single reconcile loop invocation.
+- The manager process never stores Secrets in memory beyond the duration of a single reconcile loop invocation.
 
 ## Structured Logging
 
@@ -78,7 +78,7 @@ The binary is built with `GOFIPS140=v1.0.0` (enforced in the Makefile for all `g
 
 - **Webhook panics**: `podCustomDefaulter.Default()` defers a `recover()` that converts any panic into a returned error, which causes the API server to reject the Pod admission with an informative error rather than crashing the process.
 - **ConfigMap not found at startup**: The process exits with code 1 if the ConfigMap cannot be read at startup. This is intentional – a missing or invalid config is a misconfiguration that must be resolved before the webhook can safely operate.
-- **Secret sync errors**: When patching a secret in one namespace fails, the error is recorded but the controller continues patching the remaining namespaces. All errors are collected and returned as a combined error, triggering controller-runtime's standard exponential backoff retry.
+- **Secret sync errors**: When patching a Secret in one namespace fails, the error is recorded but the controller continues patching the remaining namespaces. All errors are collected and returned as a combined error, triggering controller-runtime's standard exponential backoff retry.
 - **Certificate patch conflicts**: `BuildUpdateCABundle` wraps the patch in `retry.RetryOnConflict` with `retry.DefaultBackoff`.
 
 ## Testing Strategy

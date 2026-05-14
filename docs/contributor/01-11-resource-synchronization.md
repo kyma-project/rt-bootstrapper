@@ -1,6 +1,6 @@
 # Configuration Synchronization Using Controller Loop
 
-Runtime Bootstrapper synchronizes several resources between Kyma Control Plane (KCP) and Kyma runtimes. Some webhook features require specific resources to work (for example, a pull secret to access a private container registry, `ClusterTrustBundle` to interact with BTP backend services, etc.).
+Runtime Bootstrapper synchronizes several resources between Kyma Control Plane (KCP) and Kyma runtimes. Some webhook features require specific resources to work (for example, a pull Secret to access a private container registry, `ClusterTrustBundle` to interact with BTP backend services, etc.).
 
 > ### Note:
 > This document describes the current (interim) synchronization mechanism. The planned long-term replacement is captured in [ADR-007 – Direct Runtime Configuration Synchronization](adr/adr-007-direct-runtime-configuration-sync.md).
@@ -20,7 +20,7 @@ The controller loop monitors the following Kubernetes objects:
 
 | Resource Type | Purpose |
 | --- | --- |
-| Pull secret | Provides authentication credentials for pulling container images from private registries. |
+| Pull Secret | Provides authentication credentials for pulling container images from private registries. |
 | `ClusterTrustBundle` | Supplies trust anchors (for example, CA certificates) required by runtimes that interact with the BTP backend services. |
 | Webhook ConfigMap | Contains configuration for the Runtime Bootstrapper webhook. |
 
@@ -40,7 +40,7 @@ The Infrastructure Manager watches the Runtime CR for modifications. If it detec
 
 ### Change Detection
 
-The controller loop continuously watches the pull secret, `ClusterTrustBundle`, and the webhook ConfigMap.
+The controller loop continuously watches the pull Secret, `ClusterTrustBundle`, and the webhook ConfigMap.
 
 Whenever one of these resources is created, updated, or deleted, the controller receives an event.
 
