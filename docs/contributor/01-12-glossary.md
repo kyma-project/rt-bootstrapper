@@ -18,7 +18,7 @@
 | Kyma Infrastructure Manager (KIM) | Installs and manages the lifecycle of Kyma runtimes and the components deployed on them, including Runtime Bootstrapper. |
 | Kyma Lifecycle Manager (KLM) | Deploys Kyma modules into Kyma runtimes by managing Deployments, DaemonSets, and StatefulSets. Does not create bare Pods directly. |
 | Kustomize | A Kubernetes configuration management tool used to generate environment-specific manifests (`config/default/` for production, `config/k3d/` for local development). |
-| `KYMA_LANDSCAPE` | Environment variable injected into Pod containers by the `set-landscape` manipulation. Its value is the landscape identifier supplied to Runtime Bootstrapper via the `--landscape` flag at startup. |
+| `KYMA_LANDSCAPE` | Environment variable injected into Pod containers by the `set-landscape` manipulation. Its value is the landscape identifier supplied to Runtime Bootstrapper using the `--landscape` flag at startup. |
 | master secret | The `registry-credentials` Secret in `kyma-system`. The authoritative copy that the Secret controller reads and mirrors to all other namespaces. |
 | `MutatingWebhookConfiguration` | The Kubernetes cluster-scoped resource (`rt-bootstrapper-mutating-webhook-configuration`) that registers Runtime Bootstrapper as a mutating webhook with the API server. |
 | `namespaceFeatures` | A field in the `Config` struct that maps namespace names to a list of feature annotation keys. Pods in a listed namespace receive the named manipulations without requiring any annotation on the namespace or Pod. |

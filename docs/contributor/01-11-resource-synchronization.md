@@ -1,6 +1,6 @@
 # Configuration Synchronization Using Controller Loop
 
-Runtime Bootstrapper synchronizes several resources between Kyma Control Plane (KCP) and Kyma runtimes. Some webhook features require specific resources to work (for example, a pull Secret to access a private container registry, `ClusterTrustBundle` to interact with BTP backend services, etc.).
+Runtime Bootstrapper synchronizes several resources between Kyma Control Plane (KCP) and Kyma runtimes. Some webhook features require specific resources to work, for example, a pull Secret to access a private container registry, `ClusterTrustBundle` to interact with BTP backend services, etc.
 
 > ### Note:
 > This document describes the current (interim) synchronization mechanism. The planned long-term replacement is captured in [ADR-007 – Direct Runtime Configuration Synchronization](adr/adr-007-direct-runtime-configuration-sync.md).
@@ -27,14 +27,13 @@ The controller loop monitors the following Kubernetes objects:
 
 ### Runtime Custom Resource
 
-A custom resource (CR) representing a managed runtime instance.
+A Runtime custom resource (CR) represents a managed runtime instance.
 
 Kyma Infrastructure Manager (KIM) reacts to Runtime CR labels to determine if a runtime requires reconciliation.
 
 ### Kyma Infrastructure Manager (KIM)
 
 The Infrastructure Manager watches the Runtime CR for modifications. If it detects the label to force a reconciliation, it reconciles the target SKR and also synchronizes the shared resources.
-
 
 ## Current Behavior
 
@@ -43,7 +42,6 @@ The Infrastructure Manager watches the Runtime CR for modifications. If it detec
 The controller loop continuously watches the pull Secret, `ClusterTrustBundle`, and the webhook ConfigMap.
 
 Whenever one of these resources is created, updated, or deleted, the controller receives an event.
-
 
 ### Triggering Reconciliation Through Labeling
 
@@ -54,8 +52,7 @@ Upon detecting a change, the controller loop performs the following steps:
 3. KIM observes this label change.
 4. KIM reconciles the corresponding runtimes to ensure they receive the updated configuration.
 
-This mechanism uses the `Runtime` CR label as a signaling channel between the controller loop and the Kyma Infrastructure Manager.
-
+This mechanism uses the `Runtime` CR label as a signaling channel between the controller loop and KIM.
 
 ### Rationale for the Interim Approach
 

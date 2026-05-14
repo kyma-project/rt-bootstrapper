@@ -79,7 +79,7 @@ Stateless functions with no Kubernetes client dependency:
 ```
 internal/controller/
 ├── secret_controller.go         – Reconciler: syncs master Secret to all namespaces
-├── create_ns_predicate.go       – Passes only Namespace create events (excludes master namespace)
+├── create_ns_predicate.go       – Passes only namespace create events (excludes master namespace)
 └── master_secret_predicate.go   – Passes only create/update events for the named master Secret
 ```
 
