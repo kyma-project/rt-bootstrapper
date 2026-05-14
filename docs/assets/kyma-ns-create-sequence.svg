@@ -43,19 +43,19 @@
   <!-- ── 1: Any actor → API Server: create NS ── -->
   <line x1="80" y1="82" x2="240" y2="82"
         stroke="#333" stroke-width="1.5" marker-end="url(#solid)"/>
-  <text x="160" y="77" text-anchor="middle" font-size="9.5" fill="#222">create NS</text>
+  <text x="160" y="77" text-anchor="middle" font-size="9.5" fill="#222">create namespace</text>
 
   <!-- ── 2: API Server → Secret Controller: watch event ── -->
   <line x1="240" y1="112" x2="440" y2="112"
         stroke="#333" stroke-width="1.5" marker-end="url(#solid)"/>
   <text x="340" y="107" text-anchor="middle" font-size="9.5" fill="#222">watch event</text>
   <text x="340" y="124" text-anchor="middle" font-size="9" fill="#888">(createNsPredicate:</text>
-  <text x="340" y="136" text-anchor="middle" font-size="9" fill="#888">create only, not master NS)</text>
+  <text x="340" y="136" text-anchor="middle" font-size="9" fill="#888">create only, not master namespace)</text>
 
   <!-- ── 3: Secret Controller → API Server: GET master secret ── -->
   <line x1="440" y1="166" x2="644" y2="166"
         stroke="#333" stroke-width="1.5" marker-end="url(#solid)"/>
-  <text x="542" y="161" text-anchor="middle" font-size="9.5" fill="#222">GET master secret</text>
+  <text x="542" y="161" text-anchor="middle" font-size="9.5" fill="#222">GET master Secret</text>
 
   <!-- ── 4: API Server → Secret Controller: registry-creds (return) ── -->
   <line x1="644" y1="190" x2="440" y2="190"
@@ -66,7 +66,7 @@
   <line x1="440" y1="218" x2="644" y2="218"
         stroke="#333" stroke-width="1.5" marker-end="url(#solid)"/>
   <text x="542" y="213" text-anchor="middle" font-size="9.5" fill="#222">PATCH Secret</text>
-  <text x="542" y="230" text-anchor="middle" font-size="9" fill="#888">(new NS, server-side apply)</text>
+  <text x="542" y="230" text-anchor="middle" font-size="9" fill="#888">(new namespace, server-side apply)</text>
 
   <!-- ── 6: API Server → Secret Controller: OK (return) ── -->
   <line x1="644" y1="258" x2="440" y2="258"

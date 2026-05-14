@@ -26,8 +26,8 @@
   <rect x="360" y="15" width="140" height="40" rx="4" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
   <text x="430" y="40" text-anchor="middle" font-size="11" font-weight="bold" fill="#4a148c">certwatcher</text>
 
-  <rect x="535" y="15" width="140" height="40" rx="4" fill="#fdebd0" stroke="#cc7700" stroke-width="1.5"/>
-  <text x="605" y="40" text-anchor="middle" font-size="11" font-weight="bold" fill="#7d4000">RT Bootstrapper</text>
+  <rect x="518" y="15" width="174" height="40" rx="4" fill="#fdebd0" stroke="#cc7700" stroke-width="1.5"/>
+  <text x="605" y="40" text-anchor="middle" font-size="11" font-weight="bold" fill="#7d4000">Runtime Bootstrapper</text>
 
   <rect x="710" y="15" width="140" height="40" rx="4" fill="#dce8f5" stroke="#2c5f9e" stroke-width="1.5"/>
   <text x="780" y="40" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a3a6e">API Server</text>
@@ -52,8 +52,8 @@
         stroke="#333" stroke-width="1.5" marker-end="url(#solid)"/>
   <text x="167" y="113" text-anchor="middle" font-size="9.5" fill="#222">write ca.crt</text>
 
-  <!-- ── 4: Filesystem → certwatcher: fsnotify (event notification) ── -->
-  <line x1="255" y1="148" x2="430" y2="148"
+  <!-- ── 4: certwatcher → Filesystem: fsnotify ── -->
+  <line x1="430" y1="148" x2="255" y2="148"
         stroke="#7b1fa2" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#open)"/>
   <text x="342" y="143" text-anchor="middle" font-size="9.5" fill="#7b1fa2">fsnotify</text>
 
@@ -66,8 +66,7 @@
   <!-- ── 6: RT Bootstrapper → API Server: Callback() ── -->
   <line x1="605" y1="212" x2="780" y2="212"
         stroke="#333" stroke-width="1.5" marker-end="url(#solid)"/>
-  <text x="692" y="207" text-anchor="middle" font-size="9.5" fill="#222">Callback()</text>
-  <text x="692" y="224" text-anchor="middle" font-size="9" fill="#888">read ca.crt</text>
+  <text x="692" y="207" text-anchor="middle" font-size="9.5" fill="#222">Callback(read ca.crt)</text>
 
   <!-- ── 7: RT Bootstrapper → API Server: GET MutatingWebhookConfig ── -->
   <line x1="605" y1="250" x2="780" y2="250"
