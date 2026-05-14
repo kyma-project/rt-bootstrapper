@@ -54,7 +54,6 @@ Upon detecting a change, the controller loop performs the following steps:
 
 This mechanism uses the `Runtime` CR label as a signaling channel between the controller loop and the Kyma Infrastructure Manager.
 
-
 ### Rationale for the Interim Approach
 
 The labeling strategy provides a lightweight and low-risk integration path with the following advantages:
