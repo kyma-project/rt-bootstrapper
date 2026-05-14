@@ -52,7 +52,7 @@ Upon detecting a change, the controller loop performs the following steps:
 3. KIM observes this label change.
 4. KIM reconciles the corresponding runtimes to ensure they receive the updated configuration.
 
-This mechanism uses the `Runtime` CR label as a signaling channel between the controller loop and the Kyma Infrastructure Manager.
+This mechanism uses the `Runtime` CR label as a signaling channel between the controller loop and KIM.
 
 ### Rationale for the Interim Approach
 
