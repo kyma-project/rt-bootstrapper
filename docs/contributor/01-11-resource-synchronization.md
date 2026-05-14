@@ -27,7 +27,7 @@ The controller loop monitors the following Kubernetes objects:
 
 ### Runtime Custom Resource
 
-A custom resource (CR) representing a managed runtime instance.
+A Runtime custom resource (CR) represents a managed runtime instance.
 
 Kyma Infrastructure Manager (KIM) reacts to Runtime CR labels to determine if a runtime requires reconciliation.
 
