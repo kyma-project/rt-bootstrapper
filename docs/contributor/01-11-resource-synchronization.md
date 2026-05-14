@@ -35,7 +35,6 @@ Kyma Infrastructure Manager (KIM) reacts to Runtime CR labels to determine if a 
 
 The Infrastructure Manager watches the Runtime CR for modifications. If it detects the label to force a reconciliation, it reconciles the target SKR and also synchronizes the shared resources.
 
-
 ## Current Behavior
 
 ### Change Detection
