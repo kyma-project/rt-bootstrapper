@@ -40,7 +40,7 @@ kubectl apply -f https://github.com/kyma-project/rt-bootstrapper/releases/latest
 
 ## Architectural Documentation<!--??-->
 
-For architecture details, see [Architectural Documentation of Runtime Bootstrapper](./docs/contributor/README.md).<!--??-->
+For architecture details, see [Architectural Documentation of Runtime Bootstrapper](./docs/contributor/README.md).
 
 ## Development
 
@@ -71,7 +71,7 @@ For architecture details, see [Architectural Documentation of Runtime Bootstrapp
 
 ## Usage
 
-To use Runtime Bootstrapper, label your Kubernetes namespaces and Pods accordingly.<!--why 'accordingly'? wouldn't properly be a better choice?-->
+To use Runtime Bootstrapper, label your Kubernetes namespaces and Pods accordingly.
 The admission webhook intercepts the creation of these resources and applies the necessary configurations.
 
 ## Contributing

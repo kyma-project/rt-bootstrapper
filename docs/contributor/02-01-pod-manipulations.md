@@ -23,7 +23,7 @@ The **Opt-In Annotation** column contains the annotation that must be added to a
 
 ## Example
 
-This is an example of a Pod manifest before being intercepted by the Runtime Bootstrapper webhook. The annotations enable the webhook to:
+This is an example of a Pod manifest before being intercepted by the Runtime Bootstrapper webhook. The annotations enable the webhook to perform the following steps:
 
 1. Manipulate the image registry.
 2. Add a pull secret (if needed).
