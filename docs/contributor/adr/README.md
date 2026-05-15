@@ -43,7 +43,7 @@ This also enables customers to opt into this modification mechanism by annotatin
 
 The webhook retrieves a default configuration that specifies the list of manipulations to apply to all Pods in particular namespaces. Customers or other workloads cannot modify this configuration.
 
-By default, the configuration considers only Kyma-managed namespaces (for example, `kyma-system` and `istio-system`) to avoid conflicts with customer-owned namespaces.
+By default, the configuration considers only Kyma-managed namespaces (for example, `kyma-system`, `istio-system`, and `sap-transp-proxy-system`) to avoid conflicts with customer-owned namespaces.
 
 ### Applied Manipulations
 

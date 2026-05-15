@@ -24,7 +24,7 @@ Runtime Bootstrapper uses three testing layers, each targeting a different level
 
 ## Unit Tests
 
-**Location:** `internal/webhook/certificate/`, `internal/webhook/k8s/`, `pkg/api/v1/`, `internal/webhook/v1/pod_defaulter_landscape_test.go`
+**Location:** `internal/webhook/certificate/`, `internal/webhook/k8s/`, `pkg/api/v1/`, `internal/webhook/v1/pod_defaulter_landscape_test.go`, `internal/controller/`
 
 Unit tests cover pure logic with no Kubernetes client dependency:
 
@@ -32,6 +32,7 @@ Unit tests cover pure logic with no Kubernetes client dependency:
 - **`internal/webhook/k8s/`** — Stateless helpers: image registry rewriting (`AlterPodImageRegistry`) and annotation matching (`Contains`).
 - **`internal/webhook/certificate/`** — The `caBundle` patch callback logic.
 - **`internal/webhook/v1/pod_defaulter_landscape_test.go`** — The `SetLandscape` manipulation (pure function, no API server).
+- **`internal/controller/`** — Predicate filtering logic (`createNsPredicate`, `masterSecret`) — pure functions with no API server dependency.
 
 ---
 
@@ -46,7 +47,7 @@ The `ENVTEST_K8S_VERSION` is derived automatically from the `k8s.io/api` module 
 **What is tested:**
 
 - **`internal/webhook/v1/`** — Full webhook dispatch loop: annotation evaluation across all three layers, each `PodDefaulter` applied in combination, and idempotency (calling `Default()` twice on the same Pod).
-- **`internal/controller/`** — `SecretReconciler`: master Secret synced to new namespaces, master Secret update propagated to all namespaces, predicate filtering (`createNsPredicate`, `masterSecret`).
+- **`internal/controller/`** — `SecretReconciler`: master Secret synced to new namespaces, master Secret update propagated to all namespaces.
 - **`internal/webhook/server/`** — TLS server startup and readiness probe behaviour.
 
 ---

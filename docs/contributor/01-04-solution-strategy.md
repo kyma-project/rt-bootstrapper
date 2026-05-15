@@ -14,7 +14,7 @@ The entire binary is using the [Kubebuilder framework](https://kubebuilder.io/) 
 
 Manipulations are activated through a three-layer annotation precedence model: config-defined namespace defaults (highest priority, set by KIM), namespace annotations, and Pod annotations (lowest priority). For the full precedence rules and the `rt-cfg.kyma-project.io/all` alias, see [Cross-Cutting Concepts – Opt-In Annotation Model](01-08-crosscutting-concepts.md#opt-in-annotation-model).
 
-This model means Kyma-managed namespaces (for example, `kyma-system` and `istio-system`) are handled silently because they are defined in the webhook configuration, while customers can self-service enable manipulations for their own namespaces or Pods.
+This model means Kyma-managed namespaces (for example, `kyma-system`, `istio-system`, and `sap-transp-proxy-system`) are handled silently because they are defined in the webhook configuration, while customers can self-service enable manipulations for their own namespaces or Pods.
 
 ### Configuration Re-Read Per Webhook Invocation
 

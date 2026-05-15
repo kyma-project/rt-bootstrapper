@@ -2,7 +2,7 @@
 
 Runtime Bootstrapper modifies a Pod only if one of the following conditions is met:
 
-- The Pod runs within a namespace listed in the webhook's default configuration. All Pods in such namespaces are automatically intercepted and modified. This option is primarily used for Kyma-managed namespaces (for example, `kyma-system` and `istio-system`).
+- The Pod runs within a namespace listed in the webhook's default configuration. All Pods in such namespaces are automatically intercepted and modified. This option is primarily used for Kyma-managed namespaces (for example, `kyma-system`, `istio-system`, and `sap-transp-proxy-system`).
 - The namespace contains an annotation indicating that Pods within the namespace should be intercepted.
 - The Pod itself is annotated to be intercepted by the webhook.
 
