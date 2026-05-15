@@ -2,46 +2,45 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/kyma-project/rt-bootstrapper)](https://goreportcard.com/report/github.com/kyma-project/rt-bootstrapper)
 [![golangci lint](https://badgers.space/github/checks/kyma-project/rt-bootstrapper/main/golangci-lint)](https://github.com/kyma-project/rt-bootstrapper/actions/workflows/lint.yaml)
 
-# RT Bootstrapper
+# Runtime Bootstrapper
 
-This repository contains the source code for the RT Bootstrapper Kyma component used to configure Kyma runtime components running in markets with individual infrastructure setups.
+This repository contains the source code for the Runtime Bootstrapper (rt-bootstrapper) Kyma component used to configure Kyma runtime components running in markets with individual infrastructure setups.
 
 ## Overview
 
-RT Bootstrapper contains two functional parts:
+Runtime Bootstrapper contains two functional parts:
 
 - Kubernetes admission webhook that intercepts the creation of Pods.
-  It modifies the Pod specifications to include necessary configurations, modifies image paths to use the configured remote registry, and provides pull secrets with credentials.
+  It modifies the Pod specifications to include necessary configurations, modifies image paths to use the configured remote registry, and provides pull Secrets with credentials.
 
-- Kubernetes Controller that watches for namespaces and ensures that the secrets with required credentials are present and synchronized in those namespaces.
-
-
+- Kubernetes Controller that watches for namespaces and ensures that the Secrets with required credentials are present and synchronized in those namespaces.
 
 > [!NOTE]
-> This component is implemented as part of the Kyma runtime delivery.  
-> Installing RT Bootstrapper in SAP BTP, Kyma runtime, or in a self-managed Kyma runtime cluster may negatively impact your workloads.
+> This component is implemented as part of the SAP BTP, Kyma runtime delivery to specific landscapes with unique constraints.  
+> Installing Runtime Bootstrapper in Kyma runtime, or in a self-managed Kyma cluster may negatively impact your workloads.
 
 ## Installation
 
 ### Prerequisites
 
 - SAP BTP, Kyma runtime instance
-- Access to the Kyma runtime cluster with kubeconfig
+- Access to the Kyma runtime cluster with a kubeconfig
 
 ### Installation with Kyma Control Plane
 
-In environments with individual infrastructure setups, RT Bootstrapper is installed and configured automatically by Kyma Control Plane in all provisioned Kyma runtimes.
+In environments with individual infrastructure setups, Runtime Bootstrapper is installed and configured automatically by Kyma Control Plane (KCP) in all provisioned Kyma runtimes.
 
 ### Installation with kubectl
 
-To enable RT Bootstrapper in your Kyma cluster, apply the release manifest using kubectl:  
+To enable Runtime Bootstrapper in your Kyma cluster, apply the release manifest using kubectl:  
 
 ```bash
 kubectl apply -f https://github.com/kyma-project/rt-bootstrapper/releases/latest/download/rt-bootstrapper.yaml
 ```
+
 ## Architectural Documentation
 
-See [README.md](./docs/contributor/README.md) in `docs/contributor` folder.
+For architecture details, see [Architectural Documentation of Runtime Bootstrapper](./docs/contributor/README.md).
 
 ## Development
 
@@ -63,15 +62,16 @@ See [README.md](./docs/contributor/README.md) in `docs/contributor` folder.
     git clone https://github.com/kyma-project/rt-boostrapper.git && cd rt-boostrapper/
     ```
 
-2. Create a new k3d cluster and run RT Bootstrapper from the main branch:
+2. Create a new k3d cluster and run Runtime Bootstrapper from the main branch.
 
     ```bash
     k3d cluster create test-cluster
     make deploy
     ```
+
 ## Usage
 
-To use RT Bootstrapper, label your Kubernetes namespaces and Pods accordingly.   
+To use Runtime Bootstrapper, label your Kubernetes namespaces and Pods accordingly.
 The admission webhook intercepts the creation of these resources and applies the necessary configurations.
 
 ## Contributing
