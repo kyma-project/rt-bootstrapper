@@ -4,35 +4,6 @@
 
 This is the primary runtime scenario: a Kyma module operator creates a Pod in an opted-in namespace.
 
-```
-KLM/Operator      API Server     RT Bootstrapper Webhook    Kubernetes API
-     │                 │                   │                        │
-     │── create Pod ──►│                   │                        │
-     │                 │── POST /mutate ──►│                        │
-     │                 │   (Pod JSON)      │                        │
-     │                 │                   │── GET Namespace ──────►│
-     │                 │                   │◄── namespace annot. ───│
-     │                 │                   │── GET ConfigMap ──────►│
-     │                 │                   │◄── rt-bootstrapper-cfg─│
-     │                 │                   │                        │
-     │                 │                   │  Evaluate annotations: │
-     │                 │                   │  1. namespaceFeatures  │
-     │                 │                   │  2. namespace annots.  │
-     │                 │                   │  3. Pod annotations    │
-     │                 │                   │                        │
-     │                 │                   │  Run active defaulters:│
-     │                 │                   │  • AlterImgRegistry    │
-     │                 │                   │  • AddImagePullSecrets │
-     │                 │                   │  • AddClusterTrustBndl │
-     │                 │                   │  • SetFipsMode         │
-     │                 │                   │                        │
-     │                 │◄── AdmissionResp  │                        │
-     │                 │    (JSONPatch)    │                        │
-     │                 │                   │                        │
-     │                 │  applies patch, creates Pod                │
-     │◄── Pod created ─│                   │                        │
-```
-
 ![Kyma webhook sequence](../assets/kyma-webhook-sequence.svg)
 
 **Notes:**
@@ -47,24 +18,6 @@ KLM/Operator      API Server     RT Bootstrapper Webhook    Kubernetes API
 
 When cert-manager renews the webhook's TLS certificate and writes the new files to the cert directory:
 
-```
-cert-manager      Filesystem      certwatcher      RT Bootstrapper      API Server
-     │                 │                │                   │                  │
-     │── write tls.crt►│                │                   │                  │
-     │── write tls.key►│                │                   │                  │
-     │── write ca.crt ►│                │                   │                  │
-     │                 │                │                   │                  │
-     │                 │◄── fsnotify ───│                   │                  │
-     │                 │                │── reload cert ───►│                  │
-     │                 │                │   (tls.Certificate│                  │
-     │                 │                │                   │── Callback() ───►│
-     │                 │                │                   │   read ca.crt    │
-     │                 │                │                   │── GET MutatingWH►│
-     │                 │                │                   │◄── current cfg ──│
-     │                 │                │                   │── PATCH caBundle►│
-     │                 │                │                   │◄── OK ───────────│
-```
-
 ![Kyma cert rotation sequence](../assets//kyma-cert-rotation-sequence.svg)
 
 **Notes:**
@@ -78,28 +31,6 @@ cert-manager      Filesystem      certwatcher      RT Bootstrapper      API Serv
 
 When KIM pushes an updated pull secret to `kyma-system`:
 
-```
-KIM            API Server       Secret Controller       API Server
- │                 │                  │                      │
- │── PUT Secret ──►│                  │                      │
- │   (kyma-system/ │                  │                      │
- │   registry-creds│                  │                      │
- │                 │── watch event ──►│                      │
- │                 │   (masterSecret  │                      │
- │                 │    predicate:    │                      │
- │                 │    .dockerconfig │                      │
- │                 │    changed)      │                      │
- │                 │                  │── LIST Namespaces ──►│
- │                 │                  │◄── all namespaces ───│
- │                 │                  │                      │
- │                 │                  │  for each namespace: │
- │                 │                  │── PATCH Secret ─────►│
- │                 │                  │   (server-side apply)│
- │                 │                  │◄── OK ───────────────│
- │                 │                  │                      │
- │                 │                  │── requeue after 1m ──┤
-```
-
 ![Kyma Secret sync sequence](../assets/kyma-secret-sync-sequence.svg)
 
 **Notes:**
@@ -112,22 +43,6 @@ KIM            API Server       Secret Controller       API Server
 ## Scenario 4 – New Namespace Created
 
 When any namespace is created in the cluster:
-
-```
-Any actor        API Server       Secret Controller       API Server
-    │                │                     │                      │
-    │── create NS ──►│                     │                      │
-    │                │── watch event ─────►│                      │
-    │                │  (createNsPredicate:|                      │
-    │                │    create only,     │                      │
-    │                │    not master NS).  │                      │
-    │                │                     │── GET master Secret ►│
-    │                │                     │◄── registry-creds ───│
-    │                │                     │── PATCH Secret ─────►│
-    │                │                     │   (new NS,           │
-    │                │                     │    server-side apply)│
-    │                │                     │◄── OK ───────────────│
-```
 
 ![Namespace create sequence](../assets/kyma-ns-create-sequence.svg)
 
