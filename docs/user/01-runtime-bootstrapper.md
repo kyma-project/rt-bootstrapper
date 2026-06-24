@@ -63,6 +63,14 @@ Both levels can be combined. If a feature is enabled on a namespace, all Pods in
 
 Each annotation enables one specific feature. To activate it, set the value to `"true"`.
 
+| Annotation | Typical use case |
+|---|---|
+| [`rt-cfg.kyma-project.io/add-cluster-trust-bundle`](#rt-cfgkyma-projectioadd-cluster-trust-bundle) | Primary feature for NS2 (Sovereign Cloud) — mounts custom CA certificates required to trust SAP backend endpoints |
+| [`rt-cfg.kyma-project.io/add-img-pull-secret`](#rt-cfgkyma-projectioadd-img-pull-secret) | Only relevant when pulling images from a private registry that requires authentication |
+| [`rt-cfg.kyma-project.io/alter-img-registry`](#rt-cfgkyma-projectioalter-img-registry) | Only required when the container registry hostname must be rewritten to a landscape-specific mirror |
+| [`rt-cfg.kyma-project.io/set-fips-mode`](#rt-cfgkyma-projectioset-fips-mode) | Primarily NS2-related — signals to workloads that FIPS 140-compliant cryptography should be used |
+| [`rt-cfg.kyma-project.io/set-landscape`](#rt-cfgkyma-projectioset-landscape) | Injects the landscape identifier for workloads that need to know which environment they run in |
+
 > **Note for NS2 (Sovereign Cloud) customers:** The annotations listed below cover all configuration features supported by the Runtime Bootstrapper. In an NS2 environment, the CA bundle injection (`rt-cfg.kyma-project.io/add-cluster-trust-bundle`) is the primary feature you will need. The other features — image registry rewriting, pull secret injection, FIPS mode, and landscape identification — are only required in special cases and can be ignored for common deployments.
 
 ---
