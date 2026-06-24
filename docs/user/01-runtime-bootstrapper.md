@@ -14,6 +14,8 @@ You do not need to change your application code. All adjustments happen at Pod c
 ## Enabling Runtime Bootstrapper
 
 You can opt in to Runtime Bootstrapper features at two levels:
+- Annotating a namespace
+- Annotating a Pod or a Pod template
 
 ### Annotate a Namespace
 
