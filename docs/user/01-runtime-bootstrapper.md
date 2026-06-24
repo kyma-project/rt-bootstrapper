@@ -59,6 +59,8 @@ Both levels can be combined. If a feature is enabled on the namespace, all Pods 
 
 Each annotation enables one specific feature. Set the value to `"true"` to activate it.
 
+> **Note for NS2 (Sovereign Cloud) customers:** The annotations listed below cover all configuration features supported by the Runtime Bootstrapper. In an NS2 environment, the CA bundle injection (`rt-cfg.kyma-project.io/add-cluster-trust-bundle`) is the primary feature you will need. The other features — image registry rewriting, pull secret injection, FIPS mode, and landscape identification — are only required in special cases and can be ignored for common deployments.
+
 ---
 
 ### `rt-cfg.kyma-project.io/alter-img-registry`
@@ -95,6 +97,10 @@ If the Secret reference is already present, it is not added again.
 **What it does:** Mounts the cluster's TLS certificate bundle into your containers.
 
 Some landscapes use custom TLS certificates that are not included in the standard operating system trust store. When this feature is enabled, the Runtime Bootstrapper mounts the cluster's certificate bundle as a read-only volume into every container (including init-containers) under the path `/etc/ssl/certs`. This allows your application to trust landscape-specific HTTPS endpoints without any code changes.
+
+> **CA bundle ownership (NS2):** The CA bundle is managed by the NS2 operator team, not by individual application teams. If TLS communication between your workloads and SAP backends fails due to missing or outdated certificates, you must involve the NS2 operator team to issue a suitable replacement certificate. Once a new certificate is available, the Kyma team updates the CA bundle in its configuration so it becomes accessible on Kyma runtimes.
+>
+> **Hint:** Certificate changes must be handled via a service request. Make sure to inform the Kyma SRE team about any such changes so they can update the CA bundle configuration on the Kyma runtimes in a timely manner.
 
 **What changes in your Pod:**
 
