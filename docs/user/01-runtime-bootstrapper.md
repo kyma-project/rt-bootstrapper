@@ -17,7 +17,7 @@ You can opt in to Runtime Bootstrapper features at two levels:
 - Annotating a namespace
 - Annotating a Pod or a Pod template
 
-### Annotate a Namespace
+### Annotating a Namespace
 
 Add one or more feature annotations to your namespace. As a result, all Pods created in that namespace automatically receive the corresponding adjustments, without requiring changes to individual workload manifests.
 
@@ -31,7 +31,7 @@ metadata:
     rt-cfg.kyma-project.io/add-img-pull-secret: "true"
 ```
 
-### Annotate a Pod or a Pod Template
+### Annotating a Pod or a Pod Template
 
 Add annotations directly to your Pod or to the `spec.template.metadata.annotations` section of a Deployment, StatefulSet, or similar resource. As a result, only that specific Pod or Pods from that template are adjusted.
 
@@ -54,9 +54,6 @@ spec:
 
 Both levels can be combined. If a feature is enabled on a namespace, all Pods in that namespace benefit from it regardless of their own annotations.
 
-> ### Tip:
-> To enable all available features at once, use the shorthand annotation `rt-cfg.kyma-project.io/all: "true"` on either the namespace or the Pod.
-
 ---
 
 ## Supported Annotations
@@ -71,7 +68,11 @@ Each annotation enables one specific feature. To activate it, set the value to `
 | [`rt-cfg.kyma-project.io/set-fips-mode`](#rt-cfgkyma-projectioset-fips-mode) | Primarily NS2-related — signals to workloads that FIPS 140-compliant cryptography should be used |
 | [`rt-cfg.kyma-project.io/set-landscape`](#rt-cfgkyma-projectioset-landscape) | Injects the landscape identifier for workloads that need to know which environment they run in |
 
-> **Note for NS2 (Sovereign Cloud) customers:** The annotations listed below cover all configuration features supported by the Runtime Bootstrapper. In an NS2 environment, the CA bundle injection (`rt-cfg.kyma-project.io/add-cluster-trust-bundle`) is the primary feature you will need. The other features — image registry rewriting, pull secret injection, FIPS mode, and landscape identification — are only required in special cases and can be ignored for common deployments.
+> ### Tip:
+> To enable all available features at once, use the shorthand annotation [`rt-cfg.kyma-project.io/all: "true"`](#rt-cfg.kyma-project.io/all) on either a namespace or a Pod.
+
+> ## Note
+> In the US Sovereign Cloud (NS2) environment, the CA bundle injection (rt-cfg.kyma-project.io/add-cluster-trust-bundle) is the primary feature you need. The other features — image registry rewriting, pull secret injection, FIPS mode, and landscape identification — are only required in special cases and can be ignored for common deployments.
 
 ---
 
