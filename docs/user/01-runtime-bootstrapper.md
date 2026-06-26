@@ -63,7 +63,7 @@ Each annotation enables one specific feature. To activate it, set the value to `
 | Annotation | Typical use case | NS2 (Sovereign Cloud) | CN |
 |---|---|---|---|
 | [`rt-cfg.kyma-project.io/add-cluster-trust-bundle`](#rt-cfgkyma-projectioadd-cluster-trust-bundle) | Mounts custom CA certificates required to trust SAP backend endpoints | Yes — primary feature. The CA bundle is managed by the NS2 operator team. If TLS communication fails due to missing or outdated certificates, involve the NS2 operator team to issue a replacement. Once available, the Kyma team updates the CA bundle in its configuration. Certificate changes must be handled via a service request — inform the Kyma SRE team so they can update the CA bundle on Kyma runtimes in time. | No |
-| [`rt-cfg.kyma-project.io/add-img-pull-secret`](#rt-cfgkyma-projectioadd-img-pull-secret) | Only relevant when pulling images from a private registry that requires authentication | Yes | Yes |
+| [`rt-cfg.kyma-project.io/add-img-pull-secret`](#rt-cfgkyma-projectioadd-img-pull-secret) | Only relevant when pulling images from a private registry that requires authentication | No | Yes |
 | [`rt-cfg.kyma-project.io/alter-img-registry`](#rt-cfgkyma-projectioalter-img-registry) | Only required when the container registry hostname must be rewritten to a landscape-specific mirror | No | Yes |
 | [`rt-cfg.kyma-project.io/set-fips-mode`](#rt-cfgkyma-projectioset-fips-mode) | Signals to workloads that FIPS 140-compliant cryptography should be used | Yes | No |
 | [`rt-cfg.kyma-project.io/set-landscape`](#rt-cfgkyma-projectioset-landscape) | Injects the landscape identifier for workloads that need to know which environment they run in | Yes | Yes |
