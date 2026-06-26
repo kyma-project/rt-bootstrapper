@@ -60,19 +60,16 @@ Both levels can be combined. If a feature is enabled on a namespace, all Pods in
 
 Each annotation enables one specific feature. To activate it, set the value to `"true"`.
 
-| Annotation | Typical use case |
-|---|---|
-| [`rt-cfg.kyma-project.io/add-cluster-trust-bundle`](#rt-cfgkyma-projectioadd-cluster-trust-bundle) | Primary feature for NS2 (Sovereign Cloud) — mounts custom CA certificates required to trust SAP backend endpoints |
-| [`rt-cfg.kyma-project.io/add-img-pull-secret`](#rt-cfgkyma-projectioadd-img-pull-secret) | Only relevant when pulling images from a private registry that requires authentication |
-| [`rt-cfg.kyma-project.io/alter-img-registry`](#rt-cfgkyma-projectioalter-img-registry) | Only required when the container registry hostname must be rewritten to a landscape-specific mirror |
-| [`rt-cfg.kyma-project.io/set-fips-mode`](#rt-cfgkyma-projectioset-fips-mode) | Primarily NS2-related — signals to workloads that FIPS 140-compliant cryptography should be used |
-| [`rt-cfg.kyma-project.io/set-landscape`](#rt-cfgkyma-projectioset-landscape) | Injects the landscape identifier for workloads that need to know which environment they run in |
+| Annotation | Typical use case | NS2 (Sovereign Cloud) | CN |
+|---|---|---|---|
+| [`rt-cfg.kyma-project.io/add-cluster-trust-bundle`](#rt-cfgkyma-projectioadd-cluster-trust-bundle) | Mounts custom CA certificates required to trust SAP backend endpoints | Yes — primary feature. The CA bundle is managed by the NS2 operator team. If TLS communication fails due to missing or outdated certificates, involve the NS2 operator team to issue a replacement. Once available, the Kyma team updates the CA bundle in its configuration. Certificate changes must be handled via a service request — inform the Kyma SRE team so they can update the CA bundle on Kyma runtimes in time. | No |
+| [`rt-cfg.kyma-project.io/add-img-pull-secret`](#rt-cfgkyma-projectioadd-img-pull-secret) | Only relevant when pulling images from a private registry that requires authentication | Yes | Yes |
+| [`rt-cfg.kyma-project.io/alter-img-registry`](#rt-cfgkyma-projectioalter-img-registry) | Only required when the container registry hostname must be rewritten to a landscape-specific mirror | No | Yes |
+| [`rt-cfg.kyma-project.io/set-fips-mode`](#rt-cfgkyma-projectioset-fips-mode) | Signals to workloads that FIPS 140-compliant cryptography should be used | Yes | No |
+| [`rt-cfg.kyma-project.io/set-landscape`](#rt-cfgkyma-projectioset-landscape) | Injects the landscape identifier for workloads that need to know which environment they run in | Yes | Yes |
 
 > ### Tip:
 > To enable all available features at once, use the shorthand annotation [`rt-cfg.kyma-project.io/all: "true"`](#rt-cfg.kyma-project.io/all) on either a namespace or a Pod.
-
-> ## Note
-> In the US Sovereign Cloud (NS2) environment, the CA bundle injection (rt-cfg.kyma-project.io/add-cluster-trust-bundle) is the primary feature you need. The other features — image registry rewriting, pull secret injection, FIPS mode, and landscape identification — are only required in special cases and can be ignored for common deployments.
 
 ---
 
@@ -110,10 +107,6 @@ If the Secret reference is already present, it is not added again.
 The annotation mounts the cluster's TLS certificate bundle into your containers.
 
 Some landscapes use custom TLS certificates that are not included in the standard operating system trust store. When this feature is enabled, Runtime Bootstrapper mounts the cluster's certificate bundle as a read-only volume into every container (including init-containers) under the path `/etc/ssl/certs`. With this, your application can trust landscape-specific HTTPS endpoints without any code changes.
-
-> **CA bundle ownership (NS2):** The CA bundle is managed by the NS2 operator team, not by individual application teams. If TLS communication between your workloads and SAP backends fails due to missing or outdated certificates, you must involve the NS2 operator team to issue a suitable replacement certificate. Once a new certificate is available, the Kyma team updates the CA bundle in its configuration so it becomes accessible on Kyma runtimes.
->
-> **Hint:** Certificate changes must be handled via a service request. Make sure to inform the Kyma SRE team about any such changes so they can update the CA bundle configuration on the Kyma runtimes in a timely manner.
 
 The annotation causes the following changes in your Pod:
 
