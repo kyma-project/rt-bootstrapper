@@ -60,7 +60,7 @@ Both levels can be combined. If a feature is enabled on a namespace, all Pods in
 
 Each annotation enables one specific feature. To activate it, set the value to `"true"`.
 
-| Annotation | Typical use case | NS2 (Sovereign Cloud) | CN |
+| Annotation | Typical use case | US Sovereign Cloud (NS2) | China (CN) |
 |---|---|---|---|
 | [`rt-cfg.kyma-project.io/add-cluster-trust-bundle`](#rt-cfgkyma-projectioadd-cluster-trust-bundle) | Mounts custom CA certificates required to trust SAP backend endpoints | Yes — primary feature. The CA bundle is managed by the NS2 operator team. If TLS communication fails due to missing or outdated certificates, involve the NS2 operator team to issue a replacement. Once available, the Kyma team updates the CA bundle in its configuration. Certificate changes must be handled via a service request — inform the Kyma SRE team so they can update the CA bundle on Kyma runtimes in time. | No |
 | [`rt-cfg.kyma-project.io/add-img-pull-secret`](#rt-cfgkyma-projectioadd-img-pull-secret) | Only relevant when pulling images from a private registry that requires authentication | No | Yes |
@@ -69,7 +69,7 @@ Each annotation enables one specific feature. To activate it, set the value to `
 | [`rt-cfg.kyma-project.io/set-landscape`](#rt-cfgkyma-projectioset-landscape) | Injects the landscape identifier for workloads that need to know which environment they run in | Yes | Yes |
 
 > ### Tip:
-> To enable all available features at once, use the shorthand annotation [`rt-cfg.kyma-project.io/all: "true"`](#rt-cfg.kyma-project.io/all) on either a namespace or a Pod.
+> To enable all available features at once, use the shorthand annotation [`rt-cfg.kyma-project.io/all: "true"`](#rt-cfgkyma-projectioall) on either a namespace or a Pod.
 
 ---
 
