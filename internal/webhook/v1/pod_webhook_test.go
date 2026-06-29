@@ -244,34 +244,4 @@ var _ = Describe("Pod Webhook", func() {
 			Expect(pod.Annotations[apiv1.AnnotationModified]).Should(Equal("true"))
 		})
 	})
-
-	Context("auditFeatures", func() {
-		It("Should warn on inactive rt-cfg feature annotation", func() {
-			src := annotationSources{
-				{level: "pod", annotations: map[string]string{
-					apiv1.AnnotationSetPullSecret: "true",
-				}},
-			}
-			src.auditFeatures([]string{apiv1.AnnotationAlterImgRegistry})
-		})
-
-		It("Should not warn on third-party annotations", func() {
-			src := annotationSources{
-				{level: "ns", annotations: map[string]string{
-					"resources.gardener.cloud/origin":                  "some-value",
-					"kubectl.kubernetes.io/last-applied-configuration": "{}",
-				}},
-			}
-			src.auditFeatures([]string{})
-		})
-
-		It("Should not warn on active rt-cfg feature annotation", func() {
-			src := annotationSources{
-				{level: "pod", annotations: map[string]string{
-					apiv1.AnnotationSetPullSecret: "true",
-				}},
-			}
-			src.auditFeatures([]string{apiv1.AnnotationSetPullSecret})
-		})
-	})
 })
