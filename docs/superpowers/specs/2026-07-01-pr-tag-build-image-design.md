@@ -16,7 +16,7 @@ PR builds currently produce no version tag (`tag` output is empty on `pull_reque
 
 ## Solution
 
-Add a `pr-tag` output to the `setup` job that emits `0.0.0-PR.<number>` when the workflow runs on a `pull_request_target` event. This tag is mutually exclusive with the semver release tag.
+Add a `pr-tag` output to the `setup` job that emits `0.0.0-PR-<number>` when the workflow runs on a `pull_request_target` event. This tag is mutually exclusive with the semver release tag.
 
 ## Design
 
@@ -34,7 +34,7 @@ steps:
   # ... existing steps ...
   - id: pr-tag
     if: github.event_name == 'pull_request_target'
-    run: echo "pr-tag=0.0.0-PR.${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+    run: echo "pr-tag=0.0.0-PR-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
 ```
 
 ### `build-image` job
@@ -54,7 +54,7 @@ tags: |
 |---|---|---|---|
 | `push` + tag ref | `v1.2.3` | — | — |
 | `push` to main | — | `latest` | — |
-| `pull_request_target` | — | — | `0.0.0-PR.42` |
+| `pull_request_target` | — | — | `0.0.0-PR-42` |
 
 Empty outputs produce blank lines in the multiline `tags` input, which image-builder already handles safely (consistent with existing behavior).
 

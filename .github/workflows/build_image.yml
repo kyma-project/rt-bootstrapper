@@ -59,7 +59,7 @@ jobs:
         run: echo "latest=latest" >> $GITHUB_OUTPUT
       - id: pr-tag
         if: github.event_name == 'pull_request_target'
-        run: echo "pr-tag=0.0.0-PR.${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+        run: echo "pr-tag=0.0.0-PR-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
 
   build-image:
     name: run-image-builder

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a `pr-tag` output (`0.0.0-PR.<number>`) to the `setup` job in `.github/workflows/build_image.yml` so PR builds get a semver-valid image tag instead of none.
+**Goal:** Add a `pr-tag` output (`0.0.0-PR-<number>`) to the `setup` job in `.github/workflows/build_image.yml` so PR builds get a semver-valid image tag instead of none.
 
 **Architecture:** Single file change — add one job output, one step, and one line to the `tags` multiline input. No new files. Follows the exact pattern of the existing `tag` and `latest` outputs.
 
@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Tag format must satisfy: `^[v]?(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?(?:\.(0|[1-9]\d*))?(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`
-- Exact format: `0.0.0-PR.<pr-number>` (e.g. `0.0.0-PR.42`)
+- Exact format: `0.0.0-PR-<pr-number>` (e.g. `0.0.0-PR-42`)
 - Only fires on `pull_request_target` events
 - Must not affect push-to-main or push-tag event behavior
 - No changes to any file other than `.github/workflows/build_image.yml`
@@ -24,7 +24,7 @@
 - Modify: `.github/workflows/build_image.yml:44-71`
 
 **Interfaces:**
-- Produces: `needs.setup.outputs.pr-tag` — string value `0.0.0-PR.<number>` or empty string
+- Produces: `needs.setup.outputs.pr-tag` — string value `0.0.0-PR-<number>` or empty string
 
 - [ ] **Step 1: Add the `pr-tag` output declaration to the `setup` job**
 
@@ -44,7 +44,7 @@ After the existing `latest` step (currently line 58), add:
 ```yaml
       - id: pr-tag
         if: github.event_name == 'pull_request_target'
-        run: echo "pr-tag=0.0.0-PR.${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+        run: echo "pr-tag=0.0.0-PR-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
 ```
 
 - [ ] **Step 3: Add `pr-tag` to the `build-image` `tags` input**
@@ -87,7 +87,7 @@ The complete `setup` job outputs block and steps, and the `build-image` tags inp
         run: echo "latest=latest" >> $GITHUB_OUTPUT
       - id: pr-tag
         if: github.event_name == 'pull_request_target'
-        run: echo "pr-tag=0.0.0-PR.${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+        run: echo "pr-tag=0.0.0-PR-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
 
   build-image:
     name: run-image-builder
