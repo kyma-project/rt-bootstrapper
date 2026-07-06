@@ -129,8 +129,8 @@ func (s annotationSources) auditFeatures(availableFeatures []string) {
 	for _, src := range s {
 		for key := range src.annotations {
 			isAvailableFeature := slices.Contains(availableFeatures, key)
-			isRtBootstrapperFeature := strings.HasPrefix(key, "rt-bootstrapper.kyma-project.io/")
-			if !isAvailableFeature && !isRtBootstrapperFeature {
+			isRtBootstrapperFeature := strings.HasPrefix(key, "rt-cfg.kyma-project.io/")
+			if !isAvailableFeature && isRtBootstrapperFeature {
 				slog.Warn("found inactive feature", "key", key)
 			}
 		}
