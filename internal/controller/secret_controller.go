@@ -141,7 +141,7 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		credentialsSecret := createCredentialSecret(r.Name, req.Name,
 			masterSecret.Data[corev1.DockerConfigJsonKey])
 
-		return ctrl.Result{}, r.Patch(ctx, credentialsSecret, client.Apply, &client.PatchOptions{
+		return ctrl.Result{}, r.Patch(ctx, credentialsSecret, client.Apply, &client.PatchOptions{ //nolint:staticcheck
 			FieldManager: apiv1.FiledManager,
 		})
 	}
