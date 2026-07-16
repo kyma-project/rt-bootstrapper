@@ -100,7 +100,7 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			credentialsSecret := createCredentialSecret(r.Name, namespace.Name,
 				masterSecret.Data[corev1.DockerConfigJsonKey])
 
-			err := r.Patch(ctx, credentialsSecret, client.Apply, &client.PatchOptions{
+			err := r.Patch(ctx, credentialsSecret, client.Apply, &client.PatchOptions{ //nolint:staticcheck
 				FieldManager: apiv1.FiledManager,
 			})
 
@@ -129,7 +129,7 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		credentialsSecret := createCredentialSecret(r.Name, req.Namespace,
 			masterSecret.Data[corev1.DockerConfigJsonKey])
 
-		return ctrl.Result{}, r.Patch(ctx, credentialsSecret, client.Apply, &client.PatchOptions{
+		return ctrl.Result{}, r.Patch(ctx, credentialsSecret, client.Apply, &client.PatchOptions{ //nolint:staticcheck
 			FieldManager: apiv1.FiledManager,
 			Force:        ptr.To(true),
 		})
