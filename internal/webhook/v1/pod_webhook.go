@@ -25,10 +25,9 @@ import (
 
 	apiv1 "github.com/kyma-project/rt-bootstrapper/pkg/api/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 type SetupPodWebhookWithManagerOpts struct {
@@ -90,7 +89,7 @@ func SetupPodWebhookWithManager(mgr ctrl.Manager, opts SetupPodWebhookWithManage
 		namespaceDefaultFeatures: opts.NamespaceDefaultFeatures,
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).For(&corev1.Pod{}).
+	return ctrl.NewWebhookManagedBy(mgr, &corev1.Pod{}).
 		WithDefaulter(&defaulter).
 		Complete()
 }
@@ -114,7 +113,7 @@ type podCustomDefaulter struct {
 	GetConfig
 }
 
-var _ webhook.CustomDefaulter = &podCustomDefaulter{}
+var _ admission.Defaulter[*corev1.Pod] = &podCustomDefaulter{}
 
 type GetNsAnnotations = func(context.Context, string) (map[string]string, error)
 
@@ -138,7 +137,8 @@ func (s annotationSources) auditFeatures(availableFeatures []string) {
 }
 
 // Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind Pod.
-func (d *podCustomDefaulter) Default(ctx context.Context, obj runtime.Object) (err error) {
+// This method uses the new type-safe interface where obj is *corev1.Pod instead of runtime.Object.
+func (d *podCustomDefaulter) Default(ctx context.Context, obj *corev1.Pod) (err error) {
 	defer func() {
 		r := recover()
 		if r == nil {
@@ -156,10 +156,7 @@ func (d *podCustomDefaulter) Default(ctx context.Context, obj runtime.Object) (e
 		}
 	}()
 
-	pod, ok := obj.(*corev1.Pod)
-	if !ok {
-		return fmt.Errorf("expected an Pod object but got %T", obj)
-	}
+	pod := obj
 
 	nsAnnotations, err := d.GetNsAnnotations(ctx, pod.Namespace)
 	if err != nil {
