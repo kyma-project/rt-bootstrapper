@@ -25,9 +25,9 @@ import (
 
 	apiv1 "github.com/kyma-project/rt-bootstrapper/pkg/api/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"k8s.io/client-go/kubernetes/scheme"
 )
 
 var _ = Describe("Secret Controller", func() {
@@ -45,7 +45,7 @@ var _ = Describe("Secret Controller", func() {
 
 		It("should skip reconcile when AnnotationSetPullSecret is not in availableFeatures", func() {
 			r := &SecretReconciler{
-				Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
+				Client:         fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				NamespacedName: types.NamespacedName{Name: "registry-credentials", Namespace: "kyma-system"},
 				GetConfig: func(_ context.Context) (*apiv1.Config, error) {
 					return &apiv1.Config{
@@ -63,7 +63,7 @@ var _ = Describe("Secret Controller", func() {
 		It("should return error when GetConfig fails", func() {
 			configErr := errors.New("configmap not found")
 			r := &SecretReconciler{
-				Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
+				Client:         fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				NamespacedName: types.NamespacedName{Name: "registry-credentials", Namespace: "kyma-system"},
 				GetConfig: func(_ context.Context) (*apiv1.Config, error) {
 					return nil, configErr
