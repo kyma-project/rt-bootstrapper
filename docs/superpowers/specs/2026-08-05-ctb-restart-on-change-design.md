@@ -37,6 +37,8 @@ Automatically restart pods in Kyma-managed namespaces when the CA certificate in
 
 The CTB hash is held in memory (e.g., `sync.Mutex`-protected string or `atomic.Value`). Same process hosts both webhook and controller — no external state needed.
 
+**Startup initialization:** The CTB is read and hashed once at startup (before the manager starts), so the shared field is never empty. This eliminates the race condition where the webhook could serve a pod admission before the controller's informer syncs. The controller's watch keeps the hash updated afterward.
+
 ### Data Flow
 
 ```
@@ -65,10 +67,10 @@ CTB changes
 
 ## Empty Hash Semantics
 
-- Empty/missing hash on a pod = **treat as matching** (no restart).
-- Avoids thundering herd on controller startup/restart.
-- Avoids mass restarts on feature rollout.
-- Existing pods survive upgrade and get restarted on the next CTB rotation.
+- Empty/missing hash on a pod = **treat as matching** (don't restart).
+- Only occurs on pods created before this feature was deployed (upgrade scenario).
+- Startup race eliminated by pre-computing hash at startup (shared field is never empty in steady state).
+- Avoids mass restarts on feature rollout — existing pods survive and get restarted on the next CTB rotation.
 
 ## Namespace Discovery & RBAC
 
