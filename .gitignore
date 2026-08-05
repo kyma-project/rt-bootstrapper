@@ -37,3 +37,6 @@ dist
 # vendored files
 vendor
 .superpowers/
+
+# Local implementation plans (not for version control)
+docs/superpowers/plans/
