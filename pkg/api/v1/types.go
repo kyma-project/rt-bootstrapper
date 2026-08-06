@@ -21,6 +21,7 @@ const (
 	AnnotationSetLandscape          = "rt-cfg.kyma-project.io/set-landscape"
 	AnnotationAll                   = "rt-cfg.kyma-project.io/all"
 	AnnotationModified              = "rt-bootstrapper.kyma-project.io/modified"
+	AnnotationCTBHash               = "rt-bootstrapper.kyma-project.io/ctb-hash"
 	FiledManager                    = "rt-bootstrapper"
 	EnvKymaFipsModeEnabled          = "KYMA_FIPS_MODE_ENABLED"
 	EnvFipsModeEnabled              = "FIPS_MODE_ENABLED"
