@@ -28,8 +28,8 @@ import (
 	"slices"
 	"time"
 
+	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	certificatesv1alpha1 "k8s.io/api/certificates/v1alpha1"
 
 	"github.com/kyma-project/rt-bootstrapper/internal/webhook/certificate"
 	"k8s.io/client-go/util/retry"
@@ -50,8 +50,8 @@ import (
 
 	//"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"github.com/kyma-project/rt-bootstrapper/internal/ctb"
 	"github.com/kyma-project/rt-bootstrapper/internal/controller"
+	"github.com/kyma-project/rt-bootstrapper/internal/ctb"
 	webhook_v1 "github.com/kyma-project/rt-bootstrapper/internal/webhook/v1"
 	apiv1 "github.com/kyma-project/rt-bootstrapper/pkg/api/v1"
 	// +kubebuilder:scaffold:imports
@@ -72,7 +72,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(certificatesv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(certificatesv1beta1.AddToScheme(scheme))
 
 	// +kubebuilder:scaffold:scheme
 }
