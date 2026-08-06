@@ -3,6 +3,7 @@ package ctb
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,6 +41,14 @@ func (w *CTBWatcher) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if oldHash != newHash {
 		log.Info("CTB hash updated", "old", oldHash, "new", newHash)
+	}
+
+	requeue, err := RestartStalePods(ctx, w.Client, newHash)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if requeue {
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	return ctrl.Result{}, nil

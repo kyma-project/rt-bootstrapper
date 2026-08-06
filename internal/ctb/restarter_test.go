@@ -64,7 +64,7 @@ func TestRestartStalePods_DeletesStalePodsOnly(t *testing.T) {
 
 	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
 	require.NoError(t, err)
-	assert.False(t, requeue)
+	assert.True(t, requeue)
 
 	// stalePod should be deleted
 	var pods corev1.PodList

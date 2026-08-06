@@ -22,26 +22,31 @@ func RestartStalePods(ctx context.Context, c client.Client, desiredHash string) 
 		return false, err
 	}
 
+	var anyDeleted bool
 	for _, ns := range namespaces.Items {
-		if err := restartStalePodsInNamespace(ctx, c, ns.Name, desiredHash, log); err != nil {
+		deleted, err := restartStalePodsInNamespace(ctx, c, ns.Name, desiredHash, log)
+		if err != nil {
 			if errors.IsForbidden(err) {
 				log.Warn("no permission to list pods, skipping namespace", "namespace", ns.Name)
 				continue
 			}
 			return false, err
 		}
+		if deleted {
+			anyDeleted = true
+		}
 	}
 
-	// ponytail: always false — caller requeueing on deletion not yet wired up
-	return false, nil
+	return anyDeleted, nil
 }
 
-func restartStalePodsInNamespace(ctx context.Context, c client.Client, namespace, desiredHash string, log *slog.Logger) error {
+func restartStalePodsInNamespace(ctx context.Context, c client.Client, namespace, desiredHash string, log *slog.Logger) (bool, error) {
 	var pods corev1.PodList
 	if err := c.List(ctx, &pods, client.InNamespace(namespace)); err != nil {
-		return err
+		return false, err
 	}
 
+	var anyDeleted bool
 	for i := range pods.Items {
 		pod := &pods.Items[i]
 
@@ -57,9 +62,10 @@ func restartStalePodsInNamespace(ctx context.Context, c client.Client, namespace
 
 		log.Info("deleting stale pod", "namespace", namespace, "pod", pod.Name, "podHash", podHash)
 		if err := c.Delete(ctx, pod); err != nil && !errors.IsNotFound(err) {
-			return err
+			return false, err
 		}
+		anyDeleted = true
 	}
 
-	return nil
+	return anyDeleted, nil
 }
