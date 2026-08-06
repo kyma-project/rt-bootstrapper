@@ -5,7 +5,7 @@
 | PR | Scope | Status | Link |
 |----|-------|--------|------|
 | PR1 | Annotation value support (`false`, `restart-on-change`) | ✅ Done | [#190](https://github.com/kyma-project/rt-bootstrapper/pull/190) |
-| PR2 | Hash stamping + CTB watcher | ⬜ Not started | — |
+| PR2 | Hash stamping + CTB watcher | ✅ Done | [#191](https://github.com/kyma-project/rt-bootstrapper/pull/191) |
 | PR3 | CTB controller + pod restart | ⬜ Not started | — |
 | PR4 | RBAC (ClusterRole + RoleBindings) | ⬜ Not started | — |
 | PR5 | Documentation update | ⬜ Not started | — |
