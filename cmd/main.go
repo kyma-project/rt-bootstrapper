@@ -49,6 +49,7 @@ import (
 
 	//"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	"github.com/kyma-project/rt-bootstrapper/internal/ctb"
 	"github.com/kyma-project/rt-bootstrapper/internal/controller"
 	webhook_v1 "github.com/kyma-project/rt-bootstrapper/internal/webhook/v1"
 	apiv1 "github.com/kyma-project/rt-bootstrapper/pkg/api/v1"
@@ -276,12 +277,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	hashHolder := ctb.NewHashHolder()
+
 	whOpts := webhook_v1.SetupPodWebhookWithManagerOpts{
 		AvailableFeatures:        cfg.AvailableFeatures,
 		NamespaceDefaultFeatures: cfg.NamespaceDefaultFeatures,
 		GetConfig:                readConfig,
 		ImagePullSecretName:      imagePullSecretName,
 		Landscape:                landscape,
+		HashHolder:               hashHolder,
 	}
 
 	if err := webhook_v1.SetupPodWebhookWithManager(mgr, whOpts); err != nil {
