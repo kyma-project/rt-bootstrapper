@@ -7,7 +7,7 @@ import (
 	"github.com/kyma-project/rt-bootstrapper/internal/ctb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	certificatesv1alpha1 "k8s.io/api/certificates/v1alpha1"
+	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -18,15 +18,15 @@ import (
 func newScheme(t *testing.T) *runtime.Scheme {
 	t.Helper()
 	s := runtime.NewScheme()
-	require.NoError(t, certificatesv1alpha1.AddToScheme(s))
+	require.NoError(t, certificatesv1beta1.AddToScheme(s))
 	return s
 }
 
 func TestCTBWatcher_Reconcile(t *testing.T) {
 	s := newScheme(t)
-	ctbObj := &certificatesv1alpha1.ClusterTrustBundle{
+	ctbObj := &certificatesv1beta1.ClusterTrustBundle{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-ctb"},
-		Spec:       certificatesv1alpha1.ClusterTrustBundleSpec{TrustBundle: "bundle-content"},
+		Spec:       certificatesv1beta1.ClusterTrustBundleSpec{TrustBundle: "bundle-content"},
 	}
 
 	fakeClient := fake.NewClientBuilder().WithScheme(s).WithObjects(ctbObj).Build()
@@ -63,9 +63,9 @@ func TestCTBWatcher_Reconcile_IgnoresOtherCTBs(t *testing.T) {
 
 func TestCTBWatcher_Reconcile_HashChangesOnUpdate(t *testing.T) {
 	s := newScheme(t)
-	ctbObj := &certificatesv1alpha1.ClusterTrustBundle{
+	ctbObj := &certificatesv1beta1.ClusterTrustBundle{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-ctb"},
-		Spec:       certificatesv1alpha1.ClusterTrustBundleSpec{TrustBundle: "v1"},
+		Spec:       certificatesv1beta1.ClusterTrustBundleSpec{TrustBundle: "v1"},
 	}
 
 	fakeClient := fake.NewClientBuilder().WithScheme(s).WithObjects(ctbObj).Build()
@@ -96,9 +96,9 @@ func TestCTBWatcher_Reconcile_HashChangesOnUpdate(t *testing.T) {
 
 func TestPreComputeHash(t *testing.T) {
 	s := newScheme(t)
-	ctbObj := &certificatesv1alpha1.ClusterTrustBundle{
+	ctbObj := &certificatesv1beta1.ClusterTrustBundle{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-ctb"},
-		Spec:       certificatesv1alpha1.ClusterTrustBundleSpec{TrustBundle: "test-bundle"},
+		Spec:       certificatesv1beta1.ClusterTrustBundleSpec{TrustBundle: "test-bundle"},
 	}
 
 	fakeClient := fake.NewClientBuilder().WithScheme(s).WithObjects(ctbObj).Build()

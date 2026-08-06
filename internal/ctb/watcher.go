@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	certificatesv1alpha1 "k8s.io/api/certificates/v1alpha1"
+	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -28,7 +28,7 @@ func (w *CTBWatcher) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	log := slog.Default().With("controller", "ctb-watcher", "ctb-name", req.Name)
 
-	var ctb certificatesv1alpha1.ClusterTrustBundle
+	var ctb certificatesv1beta1.ClusterTrustBundle
 	if err := w.Get(ctx, req.NamespacedName, &ctb); err != nil {
 		log.Error("failed to get ClusterTrustBundle", "error", err)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -47,7 +47,7 @@ func (w *CTBWatcher) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 func (w *CTBWatcher) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&certificatesv1alpha1.ClusterTrustBundle{}).
+		For(&certificatesv1beta1.ClusterTrustBundle{}).
 		WithEventFilter(predicate.NewPredicateFuncs(func(object client.Object) bool {
 			return object.GetName() == w.CTBName
 		})).
@@ -58,7 +58,7 @@ func (w *CTBWatcher) SetupWithManager(mgr ctrl.Manager) error {
 // PreComputeHash reads the named CTB and initializes the hash holder.
 // Called at startup before the manager starts.
 func PreComputeHash(ctx context.Context, c client.Client, ctbName string, holder *HashHolder) error {
-	var ctb certificatesv1alpha1.ClusterTrustBundle
+	var ctb certificatesv1beta1.ClusterTrustBundle
 	if err := c.Get(ctx, client.ObjectKey{Name: ctbName}, &ctb); err != nil {
 		return err
 	}
