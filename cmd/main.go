@@ -29,6 +29,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	certificatesv1alpha1 "k8s.io/api/certificates/v1alpha1"
 
 	"github.com/kyma-project/rt-bootstrapper/internal/webhook/certificate"
 	"k8s.io/client-go/util/retry"
@@ -71,6 +72,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(certificatesv1alpha1.AddToScheme(scheme))
 
 	// +kubebuilder:scaffold:scheme
 }
@@ -279,6 +281,13 @@ func main() {
 
 	hashHolder := ctb.NewHashHolder()
 
+	if cfg.ClusterTrustBundleMapping != nil && slices.Contains(cfg.AvailableFeatures, apiv1.AnnotationAddClusterTrustBundle) {
+		if err := ctb.PreComputeHash(context.Background(), rtClient, cfg.ClusterTrustBundleMapping.Name, hashHolder); err != nil {
+			setupLog.Error(err, "failed to pre-compute CTB hash (CTB may not exist yet)")
+			// ponytail: non-fatal — hash stays empty until CTB appears and watcher fires
+		}
+	}
+
 	whOpts := webhook_v1.SetupPodWebhookWithManagerOpts{
 		AvailableFeatures:        cfg.AvailableFeatures,
 		NamespaceDefaultFeatures: cfg.NamespaceDefaultFeatures,
@@ -291,6 +300,18 @@ func main() {
 	if err := webhook_v1.SetupPodWebhookWithManager(mgr, whOpts); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Pod")
 		os.Exit(1)
+	}
+
+	if cfg.ClusterTrustBundleMapping != nil && slices.Contains(cfg.AvailableFeatures, apiv1.AnnotationAddClusterTrustBundle) {
+		if err := (&ctb.CTBWatcher{
+			Client:     mgr.GetClient(),
+			Scheme:     mgr.GetScheme(),
+			CTBName:    cfg.ClusterTrustBundleMapping.Name,
+			HashHolder: hashHolder,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "CTBWatcher")
+			os.Exit(1)
+		}
 	}
 
 	if err := (&controller.SecretReconciler{
