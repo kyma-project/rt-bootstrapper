@@ -187,7 +187,27 @@ func BuildDefaulterAddClusterTrustBundle() PodDefaulter {
 		return handleContainers(true, p, c.ClusterTrustBundleMapping)
 	}
 
-	return defaultPod(handleClusterTrustBundle, updateOpts{
-		activeAnnotations: annotationAddClusterTrustBundle,
-	})
+	return func(p *corev1.Pod, nsAnnotations map[string]string, cfg *apiv1.Config) (bool, error) {
+		kvs := keysAndValues(p)
+
+		// Explicit opt-out: pod annotation "false" overrides everything, including namespace defaults.
+		if apiv1.CTBExplicitOptOut(p.Annotations) {
+			slog.Default().WithGroup("args").With(kvs...).Debug("CTB explicit opt out")
+			return false, nil
+		}
+
+		defaultFeatures := cfg.NamespaceDefaultFeatures(p.Namespace)
+		expandedNamespaceAnnotations := cfg.ExpandAnnotationAll(nsAnnotations)
+		expandedPodAnnotations := cfg.ExpandAnnotationAll(p.Annotations)
+
+		for _, annotations := range []map[string]string{defaultFeatures, expandedNamespaceAnnotations, expandedPodAnnotations} {
+			if apiv1.CTBMountEnabled(annotations) || k8s.Contains(annotations, annotationAddClusterTrustBundle) {
+				slog.Default().WithGroup("args").With(kvs...).Debug("CTB pod defaulting opt in")
+				return handleClusterTrustBundle(p, cfg), nil
+			}
+		}
+
+		slog.Default().WithGroup("args").With(kvs...).Debug("CTB opt out")
+		return false, nil
+	}
 }
