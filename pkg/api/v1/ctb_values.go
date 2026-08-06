@@ -19,6 +19,12 @@ func CTBMountEnabled(annotations map[string]string) bool {
 	return v == CTBValueTrue || v == CTBValueRestartOnChange
 }
 
+// CTBExplicitOptOut returns true if the pod explicitly opts out via "false".
+func CTBExplicitOptOut(annotations map[string]string) bool {
+	v, ok := annotations[AnnotationAddClusterTrustBundle]
+	return ok && v == CTBValueFalse
+}
+
 // CTBRestartEnabled returns true if the annotation value signals that the
 // pod should be restarted when the CTB CA changes.
 func CTBRestartEnabled(annotations map[string]string) bool {
