@@ -162,3 +162,33 @@ func TestConfig_ExpandAnnotationAll(t *testing.T) {
 		assert.Equal(t, in, cfg.ExpandAnnotationAll(in))
 	})
 }
+
+func TestConfig_ExpandAnnotationAll_PreservesCTBValues(t *testing.T) {
+	cfg := &v1.Config{
+		Overrides: map[string]string{"x": "y"},
+		AvailableFeatures: []string{
+			v1.AnnotationAlterImgRegistry,
+			v1.AnnotationSetPullSecret,
+			v1.AnnotationAddClusterTrustBundle,
+		},
+	}
+
+	t.Run("restart-on-change preserved over all expansion", func(t *testing.T) {
+		got := cfg.ExpandAnnotationAll(map[string]string{
+			v1.AnnotationAll:                "true",
+			v1.AnnotationAddClusterTrustBundle: "restart-on-change",
+		})
+		assert.Equal(t, "restart-on-change", got[v1.AnnotationAddClusterTrustBundle])
+		assert.Equal(t, "true", got[v1.AnnotationAlterImgRegistry])
+		assert.Equal(t, "true", got[v1.AnnotationSetPullSecret])
+	})
+
+	t.Run("false preserved over all expansion", func(t *testing.T) {
+		got := cfg.ExpandAnnotationAll(map[string]string{
+			v1.AnnotationAll:                "true",
+			v1.AnnotationAddClusterTrustBundle: "false",
+		})
+		assert.Equal(t, "false", got[v1.AnnotationAddClusterTrustBundle])
+		assert.Equal(t, "true", got[v1.AnnotationAlterImgRegistry])
+	})
+}
