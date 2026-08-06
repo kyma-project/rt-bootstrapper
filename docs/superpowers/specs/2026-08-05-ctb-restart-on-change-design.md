@@ -1,5 +1,15 @@
 # Design: ClusterTrustBundle Restart-on-Change
 
+## Progress
+
+| PR | Scope | Status | Link |
+|----|-------|--------|------|
+| PR1 | Annotation value support (`false`, `restart-on-change`) | ✅ Done | [#190](https://github.com/kyma-project/rt-bootstrapper/pull/190) |
+| PR2 | Hash stamping + CTB watcher | ⬜ Not started | — |
+| PR3 | CTB controller + pod restart | ⬜ Not started | — |
+| PR4 | RBAC (ClusterRole + RoleBindings) | ⬜ Not started | — |
+| PR5 | Documentation update | ⬜ Not started | — |
+
 ## Summary
 
 Automatically restart pods in Kyma-managed namespaces when the CA certificate in a `ClusterTrustBundle` (CTB) changes. Opt-in via annotation value `"restart-on-change"`.
