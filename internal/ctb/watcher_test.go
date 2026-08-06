@@ -159,7 +159,7 @@ func TestCTBWatcher_Reconcile_TriggersRestart(t *testing.T) {
 	require.NoError(t, err)
 
 	// Should requeue since pods were deleted
-	assert.True(t, result.RequeueAfter > 0 || result.Requeue)
+	assert.True(t, result.RequeueAfter > 0)
 
 	// Pod should be deleted
 	var pods corev1.PodList
