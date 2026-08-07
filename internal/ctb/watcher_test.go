@@ -3,6 +3,7 @@ package ctb_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/kyma-project/rt-bootstrapper/internal/ctb"
 	apiv1 "github.com/kyma-project/rt-bootstrapper/pkg/api/v1"
@@ -43,9 +44,10 @@ func TestCTBWatcher_Reconcile(t *testing.T) {
 		HashHolder: holder,
 	}
 
-	_, err := watcher.Reconcile(context.Background(), ctrl.Request{NamespacedName: types.NamespacedName{Name: "my-ctb"}})
+	result, err := watcher.Reconcile(context.Background(), ctrl.Request{NamespacedName: types.NamespacedName{Name: "my-ctb"}})
 	require.NoError(t, err)
 	assert.NotEmpty(t, holder.Get())
+	assert.Equal(t, 5*time.Minute, result.RequeueAfter)
 }
 
 func TestCTBWatcher_Reconcile_IgnoresOtherCTBs(t *testing.T) {
