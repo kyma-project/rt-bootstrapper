@@ -38,16 +38,26 @@ Automatically restart pods in Kyma-managed namespaces when the CA certificate in
 2. **CTB Watcher (new)** — watches the single named `ClusterTrustBundle` (name from existing `clusterTrustBundle.name` config). On change: compute SHA-256 hash of `.spec.trustBundle`, store in shared in-memory field.
 
 3. **CTB Restart Controller (new)** — triggered by CTB change:
+
+> **Feature gate:** Components 2 and 3 only start when the CTB feature is configured and available (`cfg.ClusterTrustBundleMapping != nil && AvailableFeatures contains AnnotationAddClusterTrustBundle`). Gated in `cmd/main.go`.
+
+   Reconciliation:
    - List all namespaces (cluster-wide permission already exists).
    - For each namespace, list pods. On 403 → log warning, skip.
    - For each pod with annotation `"restart-on-change"` and hash ≠ desired → delete pod.
    - Requeue until all matching pods have correct hash.
 
+### Error Handling & Requeue Strategy
+
+- **403 (Forbidden)** → warn + skip namespace, continue to next.
+- **Other errors** (500, network, timeout) → return error → controller-runtime default exponential backoff requeue.
+- **After successful pod deletions** → explicit `RequeueAfter: 10s` to allow workload controllers to recreate pods and webhook to stamp fresh hash. Converges in 1–2 cycles.
+
 ### Shared State
 
-The CTB hash is held in memory (e.g., `sync.Mutex`-protected string or `atomic.Value`). Same process hosts both webhook and controller — no external state needed.
+The CTB hash is held in memory (`sync.RWMutex`-protected string in `HashHolder`). Same process hosts both webhook and controller — no external state needed. `RWMutex` allows concurrent webhook reads without blocking each other.
 
-**Startup initialization:** The CTB is read and hashed once at startup (before the manager starts), so the shared field is never empty. This eliminates the race condition where the webhook could serve a pod admission before the controller's informer syncs. The controller's watch keeps the hash updated afterward.
+**Startup initialization:** `ctb.PreComputeHash()` is called in `cmd/main.go` before `mgr.Start()`. It reads the named CTB and initializes the hash holder, so the shared field is never empty. This eliminates the race condition where the webhook could serve a pod admission before the controller's informer syncs. The controller's watch keeps the hash updated afterward.
 
 ### Data Flow
 
@@ -67,6 +77,13 @@ CTB changes
 - **Delete the pod directly.** The owning workload controller (Deployment/DaemonSet/StatefulSet) recreates it.
 - Webhook re-mutates the new pod on creation (mounts fresh CTB + stamps current hash).
 - All matching pods deleted at once — Kyma system pods, brief disruption acceptable.
+
+### Orphan Pod Protection
+
+- Webhook only stamps the hash annotation on pods with `len(pod.OwnerReferences) > 0`.
+- Standalone pods (no owning controller) still get the CTB volume mounted but **no hash** — effectively behaving like `"true"` (app handles cert refresh itself).
+- Controller sees empty hash → treats as matching → never deletes orphan pods.
+- This prevents accidental deletion of pods that cannot be automatically recreated.
 
 ## Hash Annotation
 
