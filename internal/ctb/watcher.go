@@ -17,9 +17,10 @@ import (
 // CTBWatcher watches a named ClusterTrustBundle and updates the hash holder on changes.
 type CTBWatcher struct {
 	client.Client
-	Scheme     *runtime.Scheme
-	CTBName    string
-	HashHolder *HashHolder
+	Scheme        *runtime.Scheme
+	CTBName       string
+	HashHolder    *HashHolder
+	ResyncInterval time.Duration
 }
 
 func (w *CTBWatcher) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -51,7 +52,7 @@ func (w *CTBWatcher) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: w.resyncInterval()}, nil
 }
 
 func (w *CTBWatcher) SetupWithManager(mgr ctrl.Manager) error {
@@ -62,6 +63,13 @@ func (w *CTBWatcher) SetupWithManager(mgr ctrl.Manager) error {
 		})).
 		Named("ctb-watcher").
 		Complete(w)
+}
+
+func (w *CTBWatcher) resyncInterval() time.Duration {
+	if w.ResyncInterval > 0 {
+		return w.ResyncInterval
+	}
+	return 5 * time.Minute
 }
 
 // PreComputeHash reads the named CTB and initializes the hash holder.
