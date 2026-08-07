@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"slices"
 
+	"github.com/kyma-project/rt-bootstrapper/internal/ctb"
 	"github.com/kyma-project/rt-bootstrapper/internal/webhook/k8s"
 	apiv1 "github.com/kyma-project/rt-bootstrapper/pkg/api/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -115,7 +116,7 @@ func BuildPodDefaulterAddImagePullSecrets(secretName string) PodDefaulter {
 	})
 }
 
-func BuildDefaulterAddClusterTrustBundle() PodDefaulter {
+func BuildDefaulterAddClusterTrustBundle(hashHolder *ctb.HashHolder) PodDefaulter {
 	// slog.Debug("building volume", mapping.KeysAndValues()...)
 
 	handleVolumeMount := func(cs []corev1.Container, m *k8s.ClusterTrustBundle) bool {
@@ -203,7 +204,20 @@ func BuildDefaulterAddClusterTrustBundle() PodDefaulter {
 		for _, annotations := range []map[string]string{defaultFeatures, expandedNamespaceAnnotations, expandedPodAnnotations} {
 			if apiv1.CTBMountEnabled(annotations) || k8s.Contains(annotations, annotationAddClusterTrustBundle) {
 				slog.Default().WithGroup("args").With(kvs...).Debug("CTB pod defaulting opt in")
-				return handleClusterTrustBundle(p, cfg), nil
+				modified := handleClusterTrustBundle(p, cfg)
+				// Stamp hash annotation if pod explicitly requested restart-on-change and hash is set
+				if apiv1.CTBRestartEnabled(p.Annotations) {
+					if len(p.OwnerReferences) == 0 {
+						slog.Default().WithGroup("args").With(kvs...).Warn("orphan pod has restart-on-change but no owner, treating as 'true'")
+					} else if hash := hashHolder.Get(); hash != "" {
+						if p.Annotations == nil {
+							p.Annotations = map[string]string{}
+						}
+						p.Annotations[apiv1.AnnotationCTBHash] = hash
+						modified = true
+					}
+				}
+				return modified, nil
 			}
 		}
 

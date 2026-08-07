@@ -28,6 +28,7 @@ import (
 	"slices"
 	"time"
 
+	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/kyma-project/rt-bootstrapper/internal/webhook/certificate"
@@ -50,6 +51,7 @@ import (
 	//"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/kyma-project/rt-bootstrapper/internal/controller"
+	"github.com/kyma-project/rt-bootstrapper/internal/ctb"
 	webhook_v1 "github.com/kyma-project/rt-bootstrapper/internal/webhook/v1"
 	apiv1 "github.com/kyma-project/rt-bootstrapper/pkg/api/v1"
 	// +kubebuilder:scaffold:imports
@@ -70,6 +72,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(certificatesv1beta1.AddToScheme(scheme))
 
 	// +kubebuilder:scaffold:scheme
 }
@@ -276,17 +279,39 @@ func main() {
 		os.Exit(1)
 	}
 
+	hashHolder := ctb.NewHashHolder()
+
+	if cfg.ClusterTrustBundleMapping != nil && slices.Contains(cfg.AvailableFeatures, apiv1.AnnotationAddClusterTrustBundle) {
+		if err := ctb.PreComputeHash(context.Background(), rtClient, cfg.ClusterTrustBundleMapping.Name, hashHolder); err != nil {
+			setupLog.Error(err, "failed to pre-compute CTB hash (CTB may not exist yet)")
+			// ponytail: non-fatal — hash stays empty until CTB appears and watcher fires
+		}
+	}
+
 	whOpts := webhook_v1.SetupPodWebhookWithManagerOpts{
 		AvailableFeatures:        cfg.AvailableFeatures,
 		NamespaceDefaultFeatures: cfg.NamespaceDefaultFeatures,
 		GetConfig:                readConfig,
 		ImagePullSecretName:      imagePullSecretName,
 		Landscape:                landscape,
+		HashHolder:               hashHolder,
 	}
 
 	if err := webhook_v1.SetupPodWebhookWithManager(mgr, whOpts); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Pod")
 		os.Exit(1)
+	}
+
+	if cfg.ClusterTrustBundleMapping != nil && slices.Contains(cfg.AvailableFeatures, apiv1.AnnotationAddClusterTrustBundle) {
+		if err := (&ctb.CTBWatcher{
+			Client:     mgr.GetClient(),
+			Scheme:     mgr.GetScheme(),
+			CTBName:    cfg.ClusterTrustBundleMapping.Name,
+			HashHolder: hashHolder,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "CTBWatcher")
+			os.Exit(1)
+		}
 	}
 
 	if err := (&controller.SecretReconciler{
