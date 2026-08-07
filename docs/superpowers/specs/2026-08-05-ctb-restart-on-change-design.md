@@ -80,24 +80,18 @@ CTB changes
 
 ### Orphan Pod Protection
 
-- Webhook only stamps the hash annotation on pods with `len(pod.OwnerReferences) > 0`.
-- Standalone pods (no owning controller) still get the CTB volume mounted but **no hash** — effectively behaving like `"true"` (app handles cert refresh itself).
-- Controller sees empty hash → treats as matching → never deletes orphan pods.
-- This prevents accidental deletion of pods that cannot be automatically recreated.
+- **Webhook:** skips hash stamping on pods with `len(pod.OwnerReferences) == 0` + logs warning ("treating as 'true'").
+- **Controller:** skips deletion of pods without ownerReferences + logs warning.
+- Standalone pods still get the CTB volume mounted but are never restarted — effectively `"true"` behavior.
+- Defense at both layers: webhook doesn't arm the pod, controller doesn't fire on it.
 
 ## Hash Annotation
 
 - Key: `rt-bootstrapper.kyma-project.io/ctb-hash`
 - Value: hex-encoded SHA-256 of the CTB `.spec.trustBundle` content.
-- Stamped by the webhook on pods with `"restart-on-change"` only.
+- Stamped by the webhook on owned pods with `"restart-on-change"` only.
 - Used by the controller for convergence checking.
-
-## Empty Hash Semantics
-
-- Empty/missing hash on a pod = **treat as matching** (don't restart).
-- Only occurs on pods created before this feature was deployed (upgrade scenario).
-- Startup race eliminated by pre-computing hash at startup (shared field is never empty in steady state).
-- Avoids mass restarts on feature rollout — existing pods survive and get restarted on the next CTB rotation.
+- Pod without hash + `"restart-on-change"` = orphan, skipped by controller.
 
 ## Namespace Discovery & RBAC
 
