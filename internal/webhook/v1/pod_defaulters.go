@@ -207,7 +207,9 @@ func BuildDefaulterAddClusterTrustBundle(hashHolder *ctb.HashHolder) PodDefaulte
 				modified := handleClusterTrustBundle(p, cfg)
 				// Stamp hash annotation if pod explicitly requested restart-on-change and hash is set
 				if apiv1.CTBRestartEnabled(p.Annotations) {
-					if hash := hashHolder.Get(); hash != "" {
+					if len(p.OwnerReferences) == 0 {
+						slog.Default().WithGroup("args").With(kvs...).Warn("orphan pod has restart-on-change but no owner, treating as 'true'")
+					} else if hash := hashHolder.Get(); hash != "" {
 						if p.Annotations == nil {
 							p.Annotations = map[string]string{}
 						}

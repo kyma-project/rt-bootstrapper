@@ -310,10 +310,23 @@ var _ = Describe("Pod Webhook", func() {
 			pod := getTestPod(map[string]string{
 				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
 			})
+			pod.OwnerReferences = []metav1.OwnerReference{{Name: "rs", Kind: "ReplicaSet", APIVersion: "apps/v1", UID: "uid1"}}
 
 			err := defaulterCTB.Default(ctx, pod)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(pod.Annotations[apiv1.AnnotationCTBHash]).Should(Equal("abc123"))
+		})
+
+		It("Should NOT stamp hash on orphan pod with 'restart-on-change'", func() {
+			hashHolder.Set("abc123")
+			pod := getTestPod(map[string]string{
+				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
+			})
+			// No OwnerReferences — orphan pod
+
+			err := defaulterCTB.Default(ctx, pod)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(pod.Annotations).ShouldNot(HaveKey(apiv1.AnnotationCTBHash))
 		})
 
 		It("Should NOT stamp hash annotation when annotation is 'true'", func() {
