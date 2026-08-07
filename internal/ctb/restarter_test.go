@@ -34,6 +34,7 @@ func TestRestartStalePods_DeletesStalePodsOnly(t *testing.T) {
 				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
 				apiv1.AnnotationCTBHash:              "old-hash",
 			},
+			OwnerReferences: []metav1.OwnerReference{{Name: "deploy", Kind: "ReplicaSet", APIVersion: "apps/v1", UID: "uid1"}},
 		},
 		Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "c", Image: "img"}}},
 	}
@@ -45,6 +46,7 @@ func TestRestartStalePods_DeletesStalePodsOnly(t *testing.T) {
 				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
 				apiv1.AnnotationCTBHash:              "new-hash",
 			},
+			OwnerReferences: []metav1.OwnerReference{{Name: "deploy", Kind: "ReplicaSet", APIVersion: "apps/v1", UID: "uid2"}},
 		},
 		Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "c", Image: "img"}}},
 	}
@@ -78,31 +80,34 @@ func TestRestartStalePods_DeletesStalePodsOnly(t *testing.T) {
 	assert.Contains(t, names, "true-pod")
 }
 
-func TestRestartStalePods_EmptyHashTreatedAsMatching(t *testing.T) {
+func TestRestartStalePods_OrphanPodSkipped(t *testing.T) {
 	s := coreScheme(t)
 
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "kyma-system"}}
-	podNoHash := &corev1.Pod{
+	orphanPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "no-hash-pod",
+			Name:      "orphan-pod",
 			Namespace: "kyma-system",
 			Annotations: map[string]string{
 				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
+				apiv1.AnnotationCTBHash:              "old-hash",
 			},
+			// No OwnerReferences — orphan pod
 		},
 		Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "c", Image: "img"}}},
 	}
 
-	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, podNoHash).Build()
+	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, orphanPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "desired-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
-	// pod with empty hash should NOT be deleted
+	// orphan pod must NOT be deleted
 	var pods corev1.PodList
 	require.NoError(t, fc.List(context.Background(), &pods))
 	assert.Len(t, pods.Items, 1)
+	assert.Equal(t, "orphan-pod", pods.Items[0].Name)
 }
 
 func TestRestartStalePods_NoPodsNoRequeue(t *testing.T) {

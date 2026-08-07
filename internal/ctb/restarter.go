@@ -12,7 +12,7 @@ import (
 
 // RestartStalePods scans all namespaces for pods with "restart-on-change" annotation
 // whose CTB hash doesn't match desiredHash, and deletes them.
-// Empty/missing hash on a pod is treated as matching (pod is skipped).
+// Pods without ownerReferences are skipped (orphan protection).
 // Returns true if any pods were deleted (requeue needed).
 func RestartStalePods(ctx context.Context, c client.Client, desiredHash string) (bool, error) {
 	log := slog.Default().With("controller", "ctb-restarter", "desiredHash", desiredHash)
@@ -54,9 +54,13 @@ func restartStalePodsInNamespace(ctx context.Context, c client.Client, namespace
 			continue
 		}
 
-		// ponytail: empty hash = treat as matching; avoids deleting pods created before this feature
+		if len(pod.OwnerReferences) == 0 {
+			log.Warn("orphan pod has restart-on-change but no owner, skipping", "namespace", namespace, "pod", pod.Name)
+			continue
+		}
+
 		podHash := pod.Annotations[apiv1.AnnotationCTBHash]
-		if podHash == "" || podHash == desiredHash {
+		if podHash == desiredHash {
 			continue
 		}
 
