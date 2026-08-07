@@ -5,7 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/name: rt-bootstrapper
     app.kubernetes.io/managed-by: kustomize
-  name: pod-restarter-rolebinding
+  name: pod-restarter-kyma-system
   namespace: kyma-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -22,7 +22,7 @@ metadata:
   labels:
     app.kubernetes.io/name: rt-bootstrapper
     app.kubernetes.io/managed-by: kustomize
-  name: pod-restarter-rolebinding
+  name: pod-restarter-istio-system
   namespace: istio-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -39,7 +39,7 @@ metadata:
   labels:
     app.kubernetes.io/name: rt-bootstrapper
     app.kubernetes.io/managed-by: kustomize
-  name: pod-restarter-rolebinding
+  name: pod-restarter-sap-transp-proxy-system
   namespace: sap-transp-proxy-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
