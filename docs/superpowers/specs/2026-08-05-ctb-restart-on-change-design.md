@@ -52,6 +52,7 @@ Automatically restart pods in Kyma-managed namespaces when the CA certificate in
 - **403 (Forbidden)** → warn + skip namespace, continue to next.
 - **Other errors** (500, network, timeout) → return error → controller-runtime default exponential backoff requeue.
 - **After successful pod deletions** → explicit `RequeueAfter: 10s` to allow workload controllers to recreate pods and webhook to stamp fresh hash. Converges in 1–2 cycles.
+- **Watchdog resync** → on converged state (no deletions), `RequeueAfter` with configurable interval (default 5m). Catches missed watch events, API server restarts, or any drift. Configured via `clusterTrustBundle.resyncInterval` in the config (Go duration string, e.g. `"5m"`, `"10m"`).
 
 ### Shared State
 
