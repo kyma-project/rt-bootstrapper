@@ -5,22 +5,19 @@ Learn how to use Runtime Bootstrapper, a built-in Kyma component, to automatical
 > ### Note:
 > The content in this topic is only relevant for China (Shanghai) and Government Cloud (US) regions.
 
-When you deploy workloads on SAP BTP, Kyma runtime, certain landscapes have specific requirements - such as pulling images from a private registry, using FIPS-compliant cryptography, or trusting custom TLS certificates. Runtime Bootstrapper handles these adaptations automatically, so you don't need to change your application code.
+Certain landscapes, such as China (Shanghai) and Government Cloud (US), need specific configurations for Pods. For example, Pods may need to pull images from a private registry or trust landscape-specific TLS certificates. Runtime Bootstrapper automatically applies these configurations to your Pods at creation time. This process is transparent and requires no changes to your application code.
 
 Runtime Bootstrapper adjusts your Pods at creation time, before they start running. All changes are applied transparently in the background.
 
-> ### Note:
-> Runtime Bootstrapper only modifies Pods. It doesn't affect any other Kubernetes resources, such as Deployments, Services, ConfigMaps, or Secrets.
+Runtime Bootstrapper only modifies Pods. It doesn't affect any other Kubernetes resources, such as Deployments, Services, ConfigMaps, or Secrets.
 
 ## Enabling Runtime Bootstrapper
 
-You can enable Runtime Bootstrapper features using either of the following methods:
-- Annotating a namespace
-- Annotating a Pod or a Pod template
+To enable Runtime Bootstrapper features, annotate either a namespace or a Pod (or Pod template).
 
 ### Annotating a Namespace
 
-Add one or more feature annotations to your namespace. As a result, all Pods created in that namespace automatically receive the corresponding adjustments, without requiring changes to individual workload manifests.
+Add one or more feature annotations to your namespace. All Pods created in that namespace then receive the corresponding adjustments automatically. You don't need to change individual workload manifests.
 
 ```yaml
 apiVersion: v1
@@ -53,7 +50,7 @@ spec:
           image: my-registry.example.com/my-app:1.0.0
 ```
 
-You can combine both methods. If you enable a feature on a namespace, all Pods in that namespace benefit from it regardless of their own annotations.
+You can combine both methods. If you enable a feature on a namespace, all Pods in that namespace benefit from it. There is no way to opt out at the Pod level.
 
 ## Supported Annotations
 
@@ -66,7 +63,7 @@ The availability shown below may change. To confirm a feature is active in your 
 | [`rt-cfg.kyma-project.io/add-cluster-trust-bundle`](#rt-cfgkyma-projectioadd-cluster-trust-bundle) | Mounts custom CA certificates required to trust SAP backend endpoints                               | Yes, it's a primary feature. The CA bundle is managed by the landscape operator team. If TLS communication fails due to missing or outdated certificates, create a support ticket. See [Getting Support](https://help.sap.com/docs/btp/sap-business-technology-platform/getting-support). | No                                    |
 | [`rt-cfg.kyma-project.io/add-img-pull-secret`](#rt-cfgkyma-projectioadd-img-pull-secret)           | Only relevant when pulling images from a private registry that requires authentication              | No                                                                                                                                                                                                                                                                                        | Yes                                   |
 | [`rt-cfg.kyma-project.io/alter-img-registry`](#rt-cfgkyma-projectioalter-img-registry)             | Only required when the container registry hostname must be rewritten to a landscape-specific mirror | Yes                                                                                                                                                                                                                                                                                       | Yes                                   |
-| [`rt-cfg.kyma-project.io/set-fips-mode`](#rt-cfgkyma-projectioset-fips-mode)                       | Signals to workloads that FIPS 140-compliant cryptography should be used                            | Yes                                                                                                                                                                                                                                                                                       | No                                    |
+| [`rt-cfg.kyma-project.io/set-fips-mode`](#rt-cfgkyma-projectioset-fips-mode)                       | Signals to workloads that they must use FIPS 140-compliant cryptography                            | Yes                                                                                                                                                                                                                                                                                       | No                                    |
 <!-- The set-landscape annotation is only documented in the open-source documentation. -->
 | [`rt-cfg.kyma-project.io/set-landscape`](#rt-cfgkyma-projectioset-landscape)                       | Injects the landscape identifier for workloads that need to know which environment they run in      | No                                                                                                                                                                                                                                                                                        | No                                    |
 
@@ -88,7 +85,7 @@ The annotation causes the following changes in your Pod:
 #### Certificate Rotation
 
 > ### Caution:
-> The mounted CA bundle can change over time. Certificates are rotated periodically for security reasons, and the file at `/etc/ssl/certs` is updated in place without restarting your Pod. Most application runtimes load TLS trust stores once at startup and do not automatically pick up changes from the filesystem. If your application doesn't reload its trust store at runtime, it starts rejecting HTTPS connections to landscape endpoints after a rotation event.
+> The mounted CA bundle is rotated periodically for security, and the file at `/etc/ssl/certs` is updated in place without restarting your Pod. Because most applications load TLS trust stores only at startup, your application might not automatically use the new certificates after a rotation. This can cause TLS connection failures.
 
 To handle certificate rotation, choose one of the following approaches:
 
@@ -172,7 +169,7 @@ To verify this, replace the placeholder and run:
 kubectl get pod <pod-name> -o jsonpath='{.metadata.annotations.rt-bootstrapper\.kyma-project\.io/modified}'
 ```
 
-If the output is `true`, Runtime Bootstrapper applied at least one modification when the Pod was created. This annotation reflects the state at creation time only - if the landscape configuration changes later, recreated Pods may silently receive fewer modifications with no automatic notification. If you suspect a feature is no longer active, contact your landscape operator and check the rt-bootstrapper logs for any relevant warnings:
+If the output is `true`, Runtime Bootstrapper applied at least one modification when the Pod was created. This annotation reflects the state at creation time only. If the landscape configuration changes later, recreated Pods might silently receive fewer modifications without automatic notification. If you suspect a feature is no longer active, contact your landscape operator and check the Runtime Bootstrapper logs for relevant warnings:
 
 ```sh
 kubectl logs -n kyma-system -l app.kubernetes.io/name=rt-bootstrapper
