@@ -5,9 +5,7 @@ Learn how to use Runtime Bootstrapper, a built-in Kyma component, to automatical
 > ### Note:
 > The content in this topic is only relevant for China (Shanghai) and Government Cloud (US) regions.
 
-Certain landscapes, such as China (Shanghai) and Government Cloud (US), need specific configurations for Pods. For example, Pods may need to pull images from a private registry or trust landscape-specific TLS certificates. Runtime Bootstrapper automatically applies these configurations to your Pods at creation time. This process is transparent and requires no changes to your application code.
-
-Runtime Bootstrapper adjusts your Pods at creation time, before they start running. All changes are applied transparently in the background.
+When you deploy workloads on SAP BTP, Kyma runtime in certain regions, such as China (Shanghai) and Government Cloud (US), Pods need specific configurations. For example, Pods may need to pull images from a private registry or trust landscape-specific TLS certificates. Runtime Bootstrapper automatically applies these configurations to your Pods at creation time. This process is transparent and requires no changes to your application code.
 
 Runtime Bootstrapper only modifies Pods. It doesn't affect any other Kubernetes resources, such as Deployments, Services, ConfigMaps, or Secrets.
 
@@ -64,8 +62,8 @@ The availability shown below may change. To confirm a feature is active in your 
 | [`rt-cfg.kyma-project.io/add-img-pull-secret`](#rt-cfgkyma-projectioadd-img-pull-secret)           | Only relevant when pulling images from a private registry that requires authentication              | No                                                                                                                                                                                                                                                                                        | Yes                                   |
 | [`rt-cfg.kyma-project.io/alter-img-registry`](#rt-cfgkyma-projectioalter-img-registry)             | Only required when the container registry hostname must be rewritten to a landscape-specific mirror | Yes                                                                                                                                                                                                                                                                                       | Yes                                   |
 | [`rt-cfg.kyma-project.io/set-fips-mode`](#rt-cfgkyma-projectioset-fips-mode)                       | Signals to workloads that they must use FIPS 140-compliant cryptography                            | Yes                                                                                                                                                                                                                                                                                       | No                                    |
-<!-- The set-landscape annotation is only documented in the open-source documentation. -->
 | [`rt-cfg.kyma-project.io/set-landscape`](#rt-cfgkyma-projectioset-landscape)                       | Injects the landscape identifier for workloads that need to know which environment they run in      | No                                                                                                                                                                                                                                                                                        | No                                    |
+<!-- The set-landscape annotation is only documented in the open-source documentation. -->
 
 > ### Tip:
 > To enable all features available in your landscape at once, use the shorthand annotation [`rt-cfg.kyma-project.io/all: "true"`](#rt-cfgkyma-projectioall) on either a namespace or a Pod.
@@ -96,7 +94,7 @@ To handle certificate rotation, choose one of the following approaches:
 
 The annotation injects image pull credentials into your Pod.
 
-When a private container registry requires authentication, Runtime Bootstrapper adds a reference to the landscape's image pull Secret (`registry-credentials`) to your Pod. This ensures your Pod can pull images without you having to manage registry credentials yourself.
+When a private container registry requires authentication, Runtime Bootstrapper adds a reference to the landscape's image pull Secret (`registry-credentials`) to your Pod. Your Pod can then pull images - you don't have to manage registry credentials yourself.
 
 The annotation causes the following change in your Pod:
 
