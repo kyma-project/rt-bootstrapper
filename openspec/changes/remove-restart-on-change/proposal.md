@@ -20,6 +20,9 @@ The ClusterTrustBundle annotation currently supports three values: `"true"`, `"f
 ### Modified Capabilities
 <!-- None — no existing main specs exist yet. This creates a new capability. -->
 
+## Target Branch
+This change targets `feat/ctb-pod-restart`.
+
 ## Impact
 
 | Area | Files affected |
