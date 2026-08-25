@@ -56,14 +56,13 @@ The problem: two values (`"true"` and `"restart-on-change"`) both enable CTB mou
 - The internal API functions can be simplified. `CTBRestartEnabled` can either be removed or made equivalent to `CTBMountEnabled`.
 - In the webhook defaulters, the check `CTBRestartEnabled(p.Annotations)` becomes simply `CTBMountEnabled(p.Annotations)` since `"true"` is the only truthy value.
 
-### D3: Upward-compatible migration — nothing blocks, behavior just changes
+### D3: `"restart-on-change"` becomes an unrecognized value
 
-**Decision:** Existing pods with `"restart-on-change"` will continue to work. On next reconciliation:
-1. The defaulter sees `"restart-on-change"` is no longer recognized as a valid truthy value.
-2. The annotation is effectively treated as unknown — but **expanded annotations** may normalize it.
-3. Hash stamping triggers, and the restarter handles restart normally.
+**Decision:** `"restart-on-change"` is no longer a recognized annotation value. It will be treated as unknown — neither mounting CTB nor triggering restart. Since `"restart-on-change"` was never rolled out in production, no existing workloads are affected.
 
-**Important:** Since `"restart-on-change"` is no longer a recognized value, it will NOT match `CTBMountEnabled` after the code change, meaning existing pods with `"restart-on-change"` will NOT be re-defaulted unless their annotation is `"true"`. **This is the breaking change.** Users must update existing pod annotations to `"true"` to maintain the current behavior.
+**Rationale:**
+- Unlike a typical breaking change, there are no production pods to migrate. The annotation was experimental and never promoted.
+- Anyone who manually set `"restart-on-change"` on a test pod will simply see CTB no longer mounted/restarted — they can update to `"true"` to get the full behavior.
 
 ## Risks / Trade-offs
 
@@ -73,9 +72,7 @@ The problem: two values (`"true"` and `"restart-on-change"`) both enable CTB mou
 
 ## Migration Plan
 
-1. **Code change** (this PR/merge): Remove `CTBValueRestartOnChange`, merge semantics into `"true"`.
-2. **Docs update**: Update any documentation referencing `"restart-on-change"` to use `"true"` instead.
-3. **User communication**: If any users have pods using `"restart-on-change"`, they need to update to `"true"`.
+No migration is needed — `"restart-on-change"` was never rolled out to production workloads.
 
 ## Open Questions
 
