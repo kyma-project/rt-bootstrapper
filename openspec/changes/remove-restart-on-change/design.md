@@ -69,9 +69,7 @@ The problem: two values (`"true"` and `"restart-on-change"`) both enable CTB mou
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Existing pods annotated with `"restart-on-change"` stop getting CTB restarts | High | Document the breaking change clearly; users must update annotations to `"true"` |
 | Pods that only wanted CTB mount (no restart) lose restart functionality | Low | No known use case for mount-without-restart exists |
-| Test gaps — some `"restart-on-change"` references missed | Medium | grep-driven audit of all usages (see Impact above) |
 
 ## Migration Plan
 
