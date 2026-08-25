@@ -10,7 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// RestartStalePods scans all namespaces for pods with "restart-on-change" annotation
+// RestartStalePods scans all namespaces for pods with annotation value "true"
 // whose CTB hash doesn't match desiredHash, and deletes them.
 // Pods without ownerReferences are skipped (orphan protection).
 // Returns true if any pods were deleted (requeue needed).
@@ -55,7 +55,7 @@ func restartStalePodsInNamespace(ctx context.Context, c client.Client, namespace
 		}
 
 		if len(pod.OwnerReferences) == 0 {
-			log.Warn("orphan pod has restart-on-change but no owner, skipping", "namespace", namespace, "pod", pod.Name)
+			log.Warn("orphan pod has CTB annotation but no owner, skipping", "namespace", namespace, "pod", pod.Name)
 			continue
 		}
 
