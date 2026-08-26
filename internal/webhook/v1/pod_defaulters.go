@@ -205,10 +205,10 @@ func BuildDefaulterAddClusterTrustBundle(hashHolder *ctb.HashHolder) PodDefaulte
 			if apiv1.CTBMountEnabled(annotations) || k8s.Contains(annotations, annotationAddClusterTrustBundle) {
 				slog.Default().WithGroup("args").With(kvs...).Debug("CTB pod defaulting opt in")
 				modified := handleClusterTrustBundle(p, cfg)
-				// Stamp hash annotation if pod explicitly requested restart-on-change and hash is set
+					// Stamp hash annotation when annotation is "true" and hash is set
 				if apiv1.CTBRestartEnabled(p.Annotations) {
 					if len(p.OwnerReferences) == 0 {
-						slog.Default().WithGroup("args").With(kvs...).Warn("orphan pod has restart-on-change but no owner, treating as 'true'")
+						slog.Default().WithGroup("args").With(kvs...).Warn("orphan pod has CTB annotation but no owner, skipping hash stamp")
 					} else if hash := hashHolder.Get(); hash != "" {
 						if p.Annotations == nil {
 							p.Annotations = map[string]string{}

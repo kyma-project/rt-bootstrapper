@@ -247,16 +247,7 @@ var _ = Describe("Pod Webhook", func() {
 			Expect(pod.Spec.Volumes[0].Name).Should(Equal("rt-bootstrapper-certs"))
 		})
 
-		It("Should mount CTB when annotation is 'restart-on-change'", func() {
-			pod := getTestPod(map[string]string{
-				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
-			})
 
-			err := defaulterCTB.Default(ctx, pod)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(pod.Spec.Volumes).Should(HaveLen(1))
-			Expect(pod.Spec.Volumes[0].Name).Should(Equal("rt-bootstrapper-certs"))
-		})
 
 		It("Should NOT mount CTB when annotation is 'false'", func() {
 			pod := getTestPod(map[string]string{
@@ -305,10 +296,10 @@ var _ = Describe("Pod Webhook", func() {
 			Expect(pod.Spec.Volumes).Should(BeEmpty())
 		})
 
-		It("Should stamp hash annotation when 'restart-on-change' and hash is set", func() {
+		It("Should stamp hash annotation when 'true' and hash is set", func() {
 			hashHolder.Set("abc123")
 			pod := getTestPod(map[string]string{
-				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
+				apiv1.AnnotationAddClusterTrustBundle: "true",
 			})
 			pod.OwnerReferences = []metav1.OwnerReference{{Name: "rs", Kind: "ReplicaSet", APIVersion: "apps/v1", UID: "uid1"}}
 
@@ -317,10 +308,10 @@ var _ = Describe("Pod Webhook", func() {
 			Expect(pod.Annotations[apiv1.AnnotationCTBHash]).Should(Equal("abc123"))
 		})
 
-		It("Should NOT stamp hash on orphan pod with 'restart-on-change'", func() {
+		It("Should NOT stamp hash on orphan pod with 'true'", func() {
 			hashHolder.Set("abc123")
 			pod := getTestPod(map[string]string{
-				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
+				apiv1.AnnotationAddClusterTrustBundle: "true",
 			})
 			// No OwnerReferences — orphan pod
 
@@ -329,21 +320,12 @@ var _ = Describe("Pod Webhook", func() {
 			Expect(pod.Annotations).ShouldNot(HaveKey(apiv1.AnnotationCTBHash))
 		})
 
-		It("Should NOT stamp hash annotation when annotation is 'true'", func() {
-			hashHolder.Set("abc123")
-			pod := getTestPod(map[string]string{
-				apiv1.AnnotationAddClusterTrustBundle: "true",
-			})
 
-			err := defaulterCTB.Default(ctx, pod)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(pod.Annotations).ShouldNot(HaveKey(apiv1.AnnotationCTBHash))
-		})
 
 		It("Should NOT stamp hash annotation when hash is empty", func() {
 			hashHolder.Set("")
 			pod := getTestPod(map[string]string{
-				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
+				apiv1.AnnotationAddClusterTrustBundle: "true",
 			})
 
 			err := defaulterCTB.Default(ctx, pod)
