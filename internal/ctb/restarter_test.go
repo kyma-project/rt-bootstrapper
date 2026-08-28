@@ -31,7 +31,7 @@ func TestRestartStalePods_DeletesStalePodsOnly(t *testing.T) {
 			Name:      "stale-pod",
 			Namespace: "kyma-system",
 			Annotations: map[string]string{
-				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
+				apiv1.AnnotationAddClusterTrustBundle: "true",
 				apiv1.AnnotationCTBHash:              "old-hash",
 			},
 			OwnerReferences: []metav1.OwnerReference{{Name: "deploy", Kind: "ReplicaSet", APIVersion: "apps/v1", UID: "uid1"}},
@@ -43,7 +43,7 @@ func TestRestartStalePods_DeletesStalePodsOnly(t *testing.T) {
 			Name:      "fresh-pod",
 			Namespace: "kyma-system",
 			Annotations: map[string]string{
-				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
+				apiv1.AnnotationAddClusterTrustBundle: "true",
 				apiv1.AnnotationCTBHash:              "new-hash",
 			},
 			OwnerReferences: []metav1.OwnerReference{{Name: "deploy", Kind: "ReplicaSet", APIVersion: "apps/v1", UID: "uid2"}},
@@ -89,7 +89,7 @@ func TestRestartStalePods_OrphanPodSkipped(t *testing.T) {
 			Name:      "orphan-pod",
 			Namespace: "kyma-system",
 			Annotations: map[string]string{
-				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
+				apiv1.AnnotationAddClusterTrustBundle: "true",
 				apiv1.AnnotationCTBHash:              "old-hash",
 			},
 			// No OwnerReferences — orphan pod
