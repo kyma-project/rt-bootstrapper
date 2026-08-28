@@ -16,7 +16,7 @@ func TestCTBMountEnabled(t *testing.T) {
 		{name: "absent", annotations: map[string]string{}, want: false},
 		{name: "true", annotations: map[string]string{v1.AnnotationAddClusterTrustBundle: "true"}, want: true},
 		{name: "false", annotations: map[string]string{v1.AnnotationAddClusterTrustBundle: "false"}, want: false},
-		{name: "restart-on-change", annotations: map[string]string{v1.AnnotationAddClusterTrustBundle: "restart-on-change"}, want: true},
+		{name: "restart-on-change (removed)", annotations: map[string]string{v1.AnnotationAddClusterTrustBundle: "restart-on-change"}, want: false},
 		{name: "unknown value", annotations: map[string]string{v1.AnnotationAddClusterTrustBundle: "garbage"}, want: false},
 		{name: "nil map", annotations: nil, want: false},
 	}
@@ -34,9 +34,9 @@ func TestCTBRestartEnabled(t *testing.T) {
 		want        bool
 	}{
 		{name: "absent", annotations: map[string]string{}, want: false},
-		{name: "true", annotations: map[string]string{v1.AnnotationAddClusterTrustBundle: "true"}, want: false},
+		{name: "true", annotations: map[string]string{v1.AnnotationAddClusterTrustBundle: "true"}, want: true},
 		{name: "false", annotations: map[string]string{v1.AnnotationAddClusterTrustBundle: "false"}, want: false},
-		{name: "restart-on-change", annotations: map[string]string{v1.AnnotationAddClusterTrustBundle: "restart-on-change"}, want: true},
+		{name: "restart-on-change (removed)", annotations: map[string]string{v1.AnnotationAddClusterTrustBundle: "restart-on-change"}, want: false},
 		{name: "nil map", annotations: nil, want: false},
 	}
 	for _, tc := range tcs {
