@@ -17,7 +17,7 @@ The webhook's `BuildDefaulterAddClusterTrustBundle` SHALL stamp the `ctb-hash` a
 - **AND** the hash holder has a non-empty hash
 - **THEN** the webhook SHALL mount the CTB volume AND stamp the `ctb-hash` annotation on the pod
 
-#### Scenario: Orphan pod does not receive hash stamp
+#### Scenario: Orphan pod receives hash stamp
 - **WHEN** a pod is created that is opted in for CTB (by any mechanism)
 - **AND** the pod has no owner references
 - **THEN** the webhook SHALL stamp the `ctb-hash` annotation
