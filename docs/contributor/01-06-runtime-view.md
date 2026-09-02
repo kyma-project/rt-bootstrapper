@@ -49,3 +49,23 @@ When any namespace is created in the cluster:
 **Notes:**
 - The `createNsPredicate` explicitly excludes the `kyma-system` namespace (the master Secret's home) to avoid a recursive patch loop.
 - If the master Secret does not exist yet, the `GET` fails and the reconciliation returns an error, triggering standard controller-runtime backoff retry.
+
+---
+
+## Scenario 5 – ClusterTrustBundle CA Change (Pod Restart)
+
+When the CA certificates in the `ClusterTrustBundle` are rotated or updated:
+
+1. The CTB watcher controller receives a reconciliation event for the named `ClusterTrustBundle`.
+2. The watcher reads the `spec.trustBundle` content and computes a SHA-256 hash.
+3. The new hash is compared with the previously stored hash in the `HashHolder`.
+4. If the hash changed, `RestartStalePods` scans all namespaces for pods with annotation `rt-cfg.kyma-project.io/add-cluster-trust-bundle: "true"` whose `rt-bootstrapper.kyma-project.io/ctb-hash` does not match the new hash or is missing entirely.
+5. Stale pods (with an owner) are deleted. The owning controller (for example, a ReplicaSet) recreates them.
+6. On recreation, the webhook stamps the new hash via the `HashHolder` during admission.
+7. The watcher requeues after 10 seconds to verify convergence. Once all pods have the correct hash, it returns to the normal resync interval (default: 5 minutes).
+
+**Notes:**
+- Only pods managed by an owner (for example, a ReplicaSet or StatefulSet) are deleted. Orphan pods are logged with a warning and skipped.
+- If the watcher cannot list pods in a namespace (HTTP 403), it logs a warning and skips that namespace.
+- At startup, `PreComputeHash` initializes the hash from the existing `ClusterTrustBundle` before the manager starts. This prevents a thundering-herd restart on first boot or upgrade.
+- While the hash is empty (for example, before the CTB exists), no pods are deleted and no hash annotation is stamped.
