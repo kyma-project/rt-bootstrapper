@@ -42,3 +42,6 @@
 
 # Owners of all .md files in the repository
 *.md @kyma-project/technical-writers
+
+# Exclude superpowers specs from technical writers
+/docs/superpowers/ @kyma-project/Framefrog
