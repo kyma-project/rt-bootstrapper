@@ -110,7 +110,7 @@ A predicate filter ensures only events for the configured CTB name are processed
 - The pod has an `OwnerReference` (orphan pods are never deleted)
 - The pod's `rt-bootstrapper.kyma-project.io/ctb-hash` annotation differs from the desired hash, or is missing entirely (treated as stale)
 
-When a namespace returns HTTP 403, the restarter logs a warning and skips the namespace.
+When a namespace returns HTTP 403, the restarter logs a warning and skips the namespace. To extend restart coverage to additional namespaces, grant the rt-bootstrapper ServiceAccount `pods` `list` and `delete` RBAC permissions in those namespaces.
 
 ---
 

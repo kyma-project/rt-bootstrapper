@@ -66,6 +66,6 @@ When the CA certificates in the `ClusterTrustBundle` are rotated or updated:
 
 **Notes:**
 - Only pods managed by an owner (for example, a ReplicaSet or StatefulSet) are deleted. Orphan pods are logged with a warning and skipped.
-- If the watcher cannot list pods in a namespace (HTTP 403), it logs a warning and skips that namespace.
+- If the watcher cannot list pods in a namespace (HTTP 403), it logs a warning and skips that namespace. To extend restart coverage to additional namespaces, grant the rt-bootstrapper ServiceAccount `pods` `list` and `delete` RBAC permissions in those namespaces.
 - At startup, `PreComputeHash` initializes the hash from the existing `ClusterTrustBundle` before the manager starts. This prevents a thundering-herd restart on first boot or upgrade.
 - While the hash is empty (for example, before the CTB exists), no pods are deleted and no hash annotation is stamped.

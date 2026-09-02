@@ -84,7 +84,7 @@ The binary is built with `GOFIPS140=v1.0.0` (enforced in the Makefile for all `g
 - **ConfigMap not found at startup**: The process exits with code 1 if the ConfigMap cannot be read at startup. This is intentional – a missing or invalid config is a misconfiguration that must be resolved before the webhook can safely operate.
 - **Secret sync errors**: When patching a Secret in one namespace fails, the error is recorded but the controller continues patching the remaining namespaces. All errors are collected and returned as a combined error, triggering controller-runtime's standard exponential backoff retry.
 - **CTB watcher errors**: If reading the `ClusterTrustBundle` fails with NotFound, the error is ignored (the CTB may not exist yet). Other errors are returned and retried with standard backoff.
-- **Pod restarter errors**: If listing pods in a namespace returns HTTP 403, the restarter logs a warning and skips the namespace. Other errors abort the scan. When pods are deleted, the restarter requeues after 10 seconds to verify convergence.
+- **Pod restarter errors**: If listing pods in a namespace returns HTTP 403, the restarter logs a warning and skips the namespace. To extend restart coverage to additional namespaces, grant the rt-bootstrapper ServiceAccount `pods` `list` and `delete` RBAC permissions in those namespaces. Other errors abort the scan. When pods are deleted, the restarter requeues after 10 seconds to verify convergence.
 - **CTB pre-computation failure**: If the CTB does not exist at startup, `PreComputeHash` fails non-fatally. The hash stays empty until the CTB watcher's first successful reconciliation.
 - **Certificate patch conflicts**: `BuildUpdateCABundle` wraps the patch in `retry.RetryOnConflict` with `retry.DefaultBackoff`.
 
