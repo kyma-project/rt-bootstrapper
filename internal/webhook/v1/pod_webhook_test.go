@@ -247,8 +247,6 @@ var _ = Describe("Pod Webhook", func() {
 			Expect(pod.Spec.Volumes[0].Name).Should(Equal("rt-bootstrapper-certs"))
 		})
 
-
-
 		It("Should NOT mount CTB when annotation is 'false'", func() {
 			pod := getTestPod(map[string]string{
 				apiv1.AnnotationAddClusterTrustBundle: "false",
@@ -319,8 +317,6 @@ var _ = Describe("Pod Webhook", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(pod.Annotations[apiv1.AnnotationCTBHash]).Should(Equal("abc123"))
 		})
-
-
 
 		It("Should NOT stamp hash annotation when hash is empty", func() {
 			hashHolder.Set("")

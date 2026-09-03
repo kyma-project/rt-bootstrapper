@@ -139,7 +139,7 @@ func TestCTBWatcher_Reconcile_TriggersRestart(t *testing.T) {
 			Namespace: "kyma-system",
 			Annotations: map[string]string{
 				apiv1.AnnotationAddClusterTrustBundle: "true",
-				apiv1.AnnotationCTBHash:              "old-hash",
+				apiv1.AnnotationCTBHash:               "old-hash",
 			},
 			OwnerReferences: []metav1.OwnerReference{{Name: "deploy", Kind: "ReplicaSet", APIVersion: "apps/v1", UID: "uid1"}},
 		},
