@@ -208,6 +208,36 @@ func TestRestartStalePods_MatchingHashNotDeleted(t *testing.T) {
 	assert.Equal(t, "matching-pod", pods.Items[0].Name)
 }
 
+func TestRestartStalePods_CTBHashOnlyWithStaleHash_IsDeleted(t *testing.T) {
+	s := coreScheme(t)
+
+	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "kyma-system"}}
+	// Pod opted-in via namespace annotation: webhook stamped ctb-hash but
+	// the pod itself does NOT carry add-cluster-trust-bundle.
+	nsPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ns-opted-pod",
+			Namespace: "kyma-system",
+			Annotations: map[string]string{
+				apiv1.AnnotationCTBHash: "old-hash",
+			},
+			OwnerReferences: []metav1.OwnerReference{{Name: "deploy", Kind: "ReplicaSet", APIVersion: "apps/v1", UID: "uid1"}},
+		},
+		Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "c", Image: "img"}}},
+	}
+
+	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, nsPod).Build()
+
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	require.NoError(t, err)
+	assert.True(t, requeue)
+
+	// Pod should be deleted — ctb-hash is stale
+	var pods corev1.PodList
+	require.NoError(t, fc.List(context.Background(), &pods))
+	assert.Empty(t, pods.Items)
+}
+
 func TestRestartStalePods_OrphanWithCTBAnnotationNotDeleted(t *testing.T) {
 	s := coreScheme(t)
 
