@@ -79,7 +79,7 @@ The annotation accepts the following values:
 | Value | Behavior |
 |-------|----------|
 | `"true"` | Mount the CA bundle **and** automatically restart the Pod when the bundle changes |
-| `"false"` | Explicit opt-out — no CA bundle mount, even if namespace defaults enable it |
+| `"false"` | Explicit opt-out - no CA bundle mount, even if namespace defaults enable it |
 
 The annotation causes the following changes in your Pod:
 
@@ -90,7 +90,7 @@ The annotation causes the following changes in your Pod:
 
 #### Explicit Opt-Out
 
-Setting the annotation to `"false"` on a Pod explicitly opts out of the CA bundle mount. This overrides namespace-level defaults. Use it when a specific workload must not receive the certificate bundle.
+If you set the annotation to `"false"` on a Pod, it explicitly opts out of the CA bundle mount. This overrides namespace-level defaults. Use it when a specific workload must not receive the certificate bundle.
 
 ```yaml
 annotations:
