@@ -101,34 +101,34 @@ annotations:
 
 Runtime Bootstrapper automatically restarts Pods when the `ClusterTrustBundle` CA changes. A built-in controller watches the `ClusterTrustBundle` resource and computes a SHA-256 hash of its content. When the hash changes, the controller scans all namespaces for Pods whose stamped hash no longer matches and deletes them. The owning controller (for example, a Deployment's ReplicaSet) recreates the Pods, and the webhook stamps the new hash during admission.
 
-> ### Note:
-> The restart controller can only operate in namespaces where the Runtime Bootstrapper ServiceAccount has been granted Pods `get`, `list`, and `delete` permissions. By default, these permissions are configured for Kyma-managed namespaces (for example, `kyma-system`, `istio-system`). To enable automatic restarts in your own namespace, create a RoleBinding that grants the required permissions:
->
-> ```yaml
-> apiVersion: rbac.authorization.k8s.io/v1
-> kind: RoleBinding
-> metadata:
->   name: pod-restarter-my-namespace
->   namespace: my-namespace
-> roleRef:
->   apiGroup: rbac.authorization.k8s.io
->   kind: ClusterRole
->   name: pod-restarter-role
-> subjects:
-> - kind: ServiceAccount
->   name: rt-bootstrapper-controller-manager
->   namespace: kyma-system
-> ```
->
-> Replace `my-namespace` with your namespace name. Without this binding, the controller logs a warning and skips the namespace.
-
-> ### Note:
-> Only Pods managed by an owner (for example, a ReplicaSet or StatefulSet) are restarted. Standalone Pods without an owner still receive the CA bundle and the hash annotation but are never deleted to avoid data loss.
+Only Pods managed by an owner (for example, a ReplicaSet or StatefulSet) are restarted. Standalone Pods without an owner still receive the CA bundle and the hash annotation but are never deleted to avoid data loss.
 
 This means your application does not need to implement file watching or any other mechanism to handle certificate rotation. The restart ensures the new certificate is loaded at startup.
 
 > ### Tip:
 > If your application can reload TLS trust stores at runtime (for example, by watching for file changes under `/etc/ssl/certs`), it can pick up the new certificates without a restart. The automatic restart acts as a safety net for applications that load certificates only at startup.
+
+#### Enabling Automatic Restart in Your Namespace
+
+The restart controller can only operate in namespaces where the Runtime Bootstrapper ServiceAccount has Pods `get`, `list`, and `delete` permissions. By default, these permissions are configured for Kyma-managed namespaces (for example, `kyma-system`, `istio-system`). To enable automatic restarts in your own namespace, create a RoleBinding that grants the required permissions. Replace `my-namespace` with your namespace name:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pod-restarter-my-namespace
+  namespace: my-namespace
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pod-restarter-role
+subjects:
+- kind: ServiceAccount
+  name: rt-bootstrapper-controller-manager
+  namespace: kyma-system
+```
+
+Without this binding, the controller logs a warning and skips the namespace.
 
 ### `rt-cfg.kyma-project.io/add-img-pull-secret`
 
