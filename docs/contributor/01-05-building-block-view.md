@@ -8,6 +8,7 @@
 |-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Mutating webhook  | Intercepts Pod creation requests from the Kubernetes API server and applies landscape-specific modifications based on configuration and annotations. |
 | Secret controller | Watches the master image-pull Secret in `kyma-system` and synchronizes it to all other cluster namespaces.                                           |
+| CTB watcher       | Watches the named `ClusterTrustBundle` for content changes and triggers Pod restarts when the CA hash changes.                                        |
 | Configuration API | Defines the `Config` struct, feature annotation constants, validation, and JSON (de)serialization for the webhook's runtime configuration.           |
 
 ---
@@ -58,7 +59,7 @@ The table below maps each manipulation to its Go constructor and feature annotat
 |------------------------------------------|---------------------------------------------------|---------------------------------------------------------------------------------------------------------|
 | `BuildPodDefaulterAlterImgRegistry()`    | `rt-cfg.kyma-project.io/alter-img-registry`       | Rewrites the registry hostname of every container (and init-container) image using `cfg.Overrides`.     |
 | `BuildPodDefaulterAddImagePullSecrets()` | `rt-cfg.kyma-project.io/add-img-pull-Secret`      | Appends the configured Secret name to `spec.imagePullSecrets` if not already present.                   |
-| `BuildDefaulterAddClusterTrustBundle()`  | `rt-cfg.kyma-project.io/add-cluster-trust-bundle` | Adds a projected `ClusterTrustBundle` volume and mounts it into every container at the configured path. |
+| `BuildDefaulterAddClusterTrustBundle()`  | `rt-cfg.kyma-project.io/add-cluster-trust-bundle` | Adds a projected `ClusterTrustBundle` volume, mounts it into every container at the configured path, and stamps a `ctb-hash` annotation on every CTB-opted-in Pod (regardless of opt-in source). Supports explicit opt-out through `"false"`. |
 | `BuildDefaulterFipsMode()`               | `rt-cfg.kyma-project.io/set-fips-mode`            | Sets `KYMA_FIPS_MODE_ENABLED=true` and `FIPS_MODE_ENABLED=true` in every init-container and container.  |
 | `BuildDefaulterSetLandscape()`           | `rt-cfg.kyma-project.io/set-landscape`            | Sets `KYMA_LANDSCAPE=<value>` in every init-container and container. The landscape value is supplied via the `--landscape` flag at startup. |
 
@@ -71,6 +72,45 @@ Stateless functions with no Kubernetes client dependency:
 - `AlterPodImageRegistry(image, overrides)` – parses the image string, identifies whether a registry host is present, and applies the override map.
 - `Contains(l, r map[string]string)` – checks whether all key-value pairs in `r` are present in `l` (used for annotation matching).
 - `ClusterTrustBundle` struct – builds the `corev1.Volume` (projected) and `corev1.VolumeMount` for the trust bundle injection.
+
+---
+
+## Level 2 – CTB Watcher
+
+```
+internal/ctb/
+├── hash_holder.go    – Thread-safe in-memory store for the current CTB hash
+├── watcher.go        – Controller watching the named ClusterTrustBundle for changes
+└── restarter.go      – Scans namespaces and deletes pods with stale CTB hashes
+```
+
+### HashHolder (`internal/ctb/hash_holder.go`)
+
+A thread-safe in-memory store (`sync.RWMutex`) shared between the webhook (reads) and the CTB watcher (writes). Holds the SHA-256 hash of the current `ClusterTrustBundle` content. `ComputeAndSet(trustBundle)` hashes the content and stores the result atomically.
+
+### CTB Watcher Controller (`internal/ctb/watcher.go`)
+
+A controller-runtime controller that watches the named `ClusterTrustBundle` resource. On each reconciliation, it performs the following steps:
+
+1. Reads the `ClusterTrustBundle` and computes a SHA-256 hash of `spec.trustBundle`.
+2. Updates the `HashHolder` with the new hash.
+3. If the hash changed, calls `RestartStalePods` to delete Pods with stale hashes.
+4. Requeues after 10 seconds if any Pods were deleted (convergence loop), otherwise requeues after a configurable resync interval (default: 5 minutes).
+
+A predicate filter ensures only events for the configured CTB name are processed.
+
+### Pre-Computation (`internal/ctb/watcher.go`)
+
+`PreComputeHash` reads the named CTB and initializes the `HashHolder` before the manager starts. This eliminates a race condition where the webhook could stamp an empty hash on Pods created before the watcher's first reconciliation. If the CTB does not exist yet, the failure is non-fatal — the hash stays empty until the CTB appears.
+
+### Pod Restarter (`internal/ctb/restarter.go`)
+
+`RestartStalePods` iterates all namespaces, lists Pods in each, and deletes those that meet the following conditions:
+- The Pod annotation `rt-cfg.kyma-project.io/add-cluster-trust-bundle` is `"true"`
+- The Pod has an `OwnerReference` (orphan Pods are never deleted)
+- The Pod's `rt-bootstrapper.kyma-project.io/ctb-hash` annotation differs from the desired hash, or is missing entirely (treated as stale)
+
+When a namespace returns HTTP 403, the restarter logs a warning and skips the namespace. To extend restart coverage to additional namespaces, grant the Runtime Bootstrapper ServiceAccount Pods `list` and `delete` RBAC permissions in those namespaces.
 
 ---
 
