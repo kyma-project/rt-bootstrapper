@@ -23,10 +23,21 @@ func CTBExplicitOptOut(annotations map[string]string) bool {
 	return ok && v == CTBValueFalse
 }
 
-// CTBRestartEnabled returns true if the annotation value signals that the
-// pod should be restarted when the CTB CA changes.
-// Only "true" enables restart; "false" and any unknown value do not.
+// CTBHashPresent returns true if the pod carries the ctb-hash annotation,
+// indicating it was mutated by the CTB webhook (regardless of opt-in source).
+func CTBHashPresent(annotations map[string]string) bool {
+	_, ok := annotations[AnnotationCTBHash]
+	return ok
+}
+
+// CTBRestartEnabled returns true if the pod should be restarted when the
+// CTB CA changes. A pod is eligible when it carries EITHER the
+// add-cluster-trust-bundle: "true" annotation OR the ctb-hash annotation
+// (stamped by the webhook on every CTB-opted-in pod).
 func CTBRestartEnabled(annotations map[string]string) bool {
+	if CTBHashPresent(annotations) {
+		return true
+	}
 	v, ok := annotations[AnnotationAddClusterTrustBundle]
 	if !ok {
 		return false

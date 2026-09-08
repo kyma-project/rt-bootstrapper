@@ -17,9 +17,9 @@ import (
 // CTBWatcher watches a named ClusterTrustBundle and updates the hash holder on changes.
 type CTBWatcher struct {
 	client.Client
-	Scheme        *runtime.Scheme
-	CTBName       string
-	HashHolder    *HashHolder
+	Scheme         *runtime.Scheme
+	CTBName        string
+	HashHolder     *HashHolder
 	ResyncInterval time.Duration
 }
 

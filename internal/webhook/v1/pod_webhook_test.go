@@ -247,8 +247,6 @@ var _ = Describe("Pod Webhook", func() {
 			Expect(pod.Spec.Volumes[0].Name).Should(Equal("rt-bootstrapper-certs"))
 		})
 
-
-
 		It("Should NOT mount CTB when annotation is 'false'", func() {
 			pod := getTestPod(map[string]string{
 				apiv1.AnnotationAddClusterTrustBundle: "false",
@@ -308,19 +306,17 @@ var _ = Describe("Pod Webhook", func() {
 			Expect(pod.Annotations[apiv1.AnnotationCTBHash]).Should(Equal("abc123"))
 		})
 
-		It("Should NOT stamp hash on orphan pod with 'true'", func() {
+		It("Should stamp hash on orphan pod with 'true'", func() {
 			hashHolder.Set("abc123")
 			pod := getTestPod(map[string]string{
 				apiv1.AnnotationAddClusterTrustBundle: "true",
 			})
-			// No OwnerReferences — orphan pod
+			// No OwnerReferences — orphan pod still gets hash stamp
 
 			err := defaulterCTB.Default(ctx, pod)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(pod.Annotations).ShouldNot(HaveKey(apiv1.AnnotationCTBHash))
+			Expect(pod.Annotations[apiv1.AnnotationCTBHash]).Should(Equal("abc123"))
 		})
-
-
 
 		It("Should NOT stamp hash annotation when hash is empty", func() {
 			hashHolder.Set("")
@@ -331,6 +327,82 @@ var _ = Describe("Pod Webhook", func() {
 			err := defaulterCTB.Default(ctx, pod)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(pod.Annotations).ShouldNot(HaveKey(apiv1.AnnotationCTBHash))
+		})
+
+		It("Should stamp hash when pod opted in via namespace defaults (no pod annotation)", func() {
+			nsFeat := apiv1.NamespaceFeatures{
+				"kyma-system": {apiv1.AnnotationAddClusterTrustBundle},
+			}
+			cfgNSDefaults := &apiv1.Config{
+				NamespaceFeatures:         &nsFeat,
+				Overrides:                 map[string]string{},
+				ClusterTrustBundleMapping: ctbMapping,
+				AvailableFeatures: []string{
+					apiv1.AnnotationAddClusterTrustBundle,
+				},
+			}
+			hashHolderNS := ctb.NewHashHolder()
+			hashHolderNS.Set("ns-default-hash")
+
+			defaulterNSDefaults := podCustomDefaulter{
+				availableFeatures: []string{
+					apiv1.AnnotationAddClusterTrustBundle,
+				},
+				defaulters: []PodDefaulter{BuildDefaulterAddClusterTrustBundle(hashHolderNS)},
+				GetNsAnnotations: func(_ context.Context, name string) (map[string]string, error) {
+					return nil, nil
+				},
+				GetConfig: func(_ context.Context) (*apiv1.Config, error) {
+					return cfgNSDefaults, nil
+				},
+				namespaceDefaultFeatures: cfgNSDefaults.NamespaceDefaultFeatures,
+			}
+
+			pod := getTestPod(nil) // no pod-level CTB annotation
+			pod.Namespace = "kyma-system"
+			pod.OwnerReferences = []metav1.OwnerReference{{Name: "rs", Kind: "ReplicaSet", APIVersion: "apps/v1", UID: "uid1"}}
+
+			err := defaulterNSDefaults.Default(ctx, pod)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(pod.Spec.Volumes).Should(HaveLen(1))
+			Expect(pod.Annotations[apiv1.AnnotationCTBHash]).Should(Equal("ns-default-hash"))
+		})
+
+		It("Should stamp hash when pod opted in via namespace annotation (no pod annotation)", func() {
+			cfgNSAnnotation := &apiv1.Config{
+				NamespaceFeatures:         &apiv1.NamespaceFeatures{},
+				Overrides:                 map[string]string{},
+				ClusterTrustBundleMapping: ctbMapping,
+				AvailableFeatures: []string{
+					apiv1.AnnotationAddClusterTrustBundle,
+				},
+			}
+			hashHolderNSAnno := ctb.NewHashHolder()
+			hashHolderNSAnno.Set("ns-anno-hash")
+
+			defaulterNSAnno := podCustomDefaulter{
+				availableFeatures: []string{
+					apiv1.AnnotationAddClusterTrustBundle,
+				},
+				defaulters: []PodDefaulter{BuildDefaulterAddClusterTrustBundle(hashHolderNSAnno)},
+				GetNsAnnotations: func(_ context.Context, name string) (map[string]string, error) {
+					return map[string]string{
+						apiv1.AnnotationAddClusterTrustBundle: "true",
+					}, nil
+				},
+				GetConfig: func(_ context.Context) (*apiv1.Config, error) {
+					return cfgNSAnnotation, nil
+				},
+				namespaceDefaultFeatures: cfgNSAnnotation.NamespaceDefaultFeatures,
+			}
+
+			pod := getTestPod(nil) // no pod-level CTB annotation
+			pod.OwnerReferences = []metav1.OwnerReference{{Name: "rs", Kind: "ReplicaSet", APIVersion: "apps/v1", UID: "uid1"}}
+
+			err := defaulterNSAnno.Default(ctx, pod)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(pod.Spec.Volumes).Should(HaveLen(1))
+			Expect(pod.Annotations[apiv1.AnnotationCTBHash]).Should(Equal("ns-anno-hash"))
 		})
 	}) // end Context("ClusterTrustBundle annotation values")
 
