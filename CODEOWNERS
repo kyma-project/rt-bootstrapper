@@ -47,5 +47,4 @@
 /docs/contributor/ @kyma-project/Framefrog
 /docs/superpowers/ @kyma-project/Framefrog
 /openspec/ @kyma-project/Framefrog
-/.pi/skills/ @kyma-project/Framefrog
-/.pi/prompts/ @kyma-project/Framefrog
+/.pi/ @kyma-project/Framefrog
