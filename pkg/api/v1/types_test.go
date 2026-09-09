@@ -173,19 +173,19 @@ func TestConfig_ExpandAnnotationAll_PreservesCTBValues(t *testing.T) {
 		},
 	}
 
-	t.Run("restart-on-change preserved over all expansion", func(t *testing.T) {
+	t.Run("CTB annotation preserved over all expansion", func(t *testing.T) {
 		got := cfg.ExpandAnnotationAll(map[string]string{
-			v1.AnnotationAll:                "true",
-			v1.AnnotationAddClusterTrustBundle: "restart-on-change",
+			v1.AnnotationAll:                   "true",
+			v1.AnnotationAddClusterTrustBundle: "true",
 		})
-		assert.Equal(t, "restart-on-change", got[v1.AnnotationAddClusterTrustBundle])
+		assert.Equal(t, "true", got[v1.AnnotationAddClusterTrustBundle])
 		assert.Equal(t, "true", got[v1.AnnotationAlterImgRegistry])
 		assert.Equal(t, "true", got[v1.AnnotationSetPullSecret])
 	})
 
 	t.Run("false preserved over all expansion", func(t *testing.T) {
 		got := cfg.ExpandAnnotationAll(map[string]string{
-			v1.AnnotationAll:                "true",
+			v1.AnnotationAll:                   "true",
 			v1.AnnotationAddClusterTrustBundle: "false",
 		})
 		assert.Equal(t, "false", got[v1.AnnotationAddClusterTrustBundle])
