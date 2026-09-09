@@ -2,6 +2,8 @@ package ctb_test
 
 import (
 	"context"
+	"log/slog"
+	"sync"
 	"testing"
 
 	"github.com/kyma-project/rt-bootstrapper/internal/ctb"
@@ -9,10 +11,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 func coreScheme(t *testing.T) *runtime.Scheme {
@@ -351,4 +357,199 @@ func TestRestartStalePods_OrphanWithCTBAnnotationNotDeleted(t *testing.T) {
 	require.NoError(t, fc.List(context.Background(), &pods))
 	assert.Len(t, pods.Items, 1)
 	assert.Equal(t, "orphan-ctb-pod", pods.Items[0].Name)
+}
+
+// logRecord holds a captured slog record for test assertions.
+type logRecord struct {
+	Level   slog.Level
+	Message string
+	Attrs   map[string]string
+}
+
+// capturingHandler is an slog.Handler that records all log records.
+type capturingHandler struct {
+	mu      sync.Mutex
+	records []logRecord
+}
+
+func (h *capturingHandler) Enabled(_ context.Context, _ slog.Level) bool { return true }
+
+func (h *capturingHandler) Handle(_ context.Context, r slog.Record) error {
+	attrs := make(map[string]string)
+	r.Attrs(func(a slog.Attr) bool {
+		attrs[a.Key] = a.Value.String()
+		return true
+	})
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.records = append(h.records, logRecord{Level: r.Level, Message: r.Message, Attrs: attrs})
+	return nil
+}
+
+func (h *capturingHandler) WithAttrs(_ []slog.Attr) slog.Handler { return h }
+func (h *capturingHandler) WithGroup(_ string) slog.Handler      { return h }
+
+func (h *capturingHandler) findByMessage(msg string) []logRecord {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	var out []logRecord
+	for _, r := range h.records {
+		if r.Message == msg {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// forbiddenListInterceptor returns an interceptor.Funcs that returns a
+// Forbidden error when listing pods in any of the given namespaces.
+func forbiddenListInterceptor(forbiddenNamespaces map[string]bool) interceptor.Funcs {
+	return interceptor.Funcs{
+		List: func(ctx context.Context, c client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+			listOpts := &client.ListOptions{}
+			for _, o := range opts {
+				o.ApplyToList(listOpts)
+			}
+			if _, ok := list.(*corev1.PodList); ok && forbiddenNamespaces[listOpts.Namespace] {
+				return k8serrors.NewForbidden(
+					schema.GroupResource{Resource: "pods"},
+					"",
+					k8serrors.NewUnauthorized("fake forbidden"),
+				)
+			}
+			return c.List(ctx, list, opts...)
+		},
+	}
+}
+
+func TestRestartStalePods_ForbiddenOnManagedNamespace_LogsError(t *testing.T) {
+	s := coreScheme(t)
+
+	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "kyma-system"}}
+
+	fc := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(ns).
+		WithInterceptorFuncs(forbiddenListInterceptor(map[string]bool{"kyma-system": true})).
+		Build()
+
+	// Capture logs
+	handler := &capturingHandler{}
+	original := slog.Default()
+	slog.SetDefault(slog.New(handler))
+	defer slog.SetDefault(original)
+
+	managedNS := map[string]bool{"kyma-system": true}
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "hash", managedNS)
+	require.NoError(t, err)
+	assert.False(t, requeue)
+
+	// Should log at Error level for managed namespace
+	records := handler.findByMessage("no permission to list pods in managed namespace")
+	require.Len(t, records, 1)
+	assert.Equal(t, slog.LevelError, records[0].Level)
+	assert.Equal(t, "kyma-system", records[0].Attrs["namespace"])
+	assert.Contains(t, records[0].Attrs["error"], "forbidden")
+}
+
+func TestRestartStalePods_ForbiddenOnUnmanagedNamespace_LogsWarn(t *testing.T) {
+	s := coreScheme(t)
+
+	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "customer-ns"}}
+
+	fc := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(ns).
+		WithInterceptorFuncs(forbiddenListInterceptor(map[string]bool{"customer-ns": true})).
+		Build()
+
+	handler := &capturingHandler{}
+	original := slog.Default()
+	slog.SetDefault(slog.New(handler))
+	defer slog.SetDefault(original)
+
+	// customer-ns is NOT in the managed set
+	managedNS := map[string]bool{"kyma-system": true}
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "hash", managedNS)
+	require.NoError(t, err)
+	assert.False(t, requeue)
+
+	// Should log at Warn level for unmanaged namespace
+	records := handler.findByMessage("no permission to list pods, skipping namespace")
+	require.Len(t, records, 1)
+	assert.Equal(t, slog.LevelWarn, records[0].Level)
+	assert.Equal(t, "customer-ns", records[0].Attrs["namespace"])
+}
+
+func TestRestartStalePods_ForbiddenWithNilManagedNamespaces_LogsWarn(t *testing.T) {
+	s := coreScheme(t)
+
+	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "some-ns"}}
+
+	fc := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(ns).
+		WithInterceptorFuncs(forbiddenListInterceptor(map[string]bool{"some-ns": true})).
+		Build()
+
+	handler := &capturingHandler{}
+	original := slog.Default()
+	slog.SetDefault(slog.New(handler))
+	defer slog.SetDefault(original)
+
+	// nil managedNamespaces — all Forbidden errors should be warnings
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "hash", nil)
+	require.NoError(t, err)
+	assert.False(t, requeue)
+
+	records := handler.findByMessage("no permission to list pods, skipping namespace")
+	require.Len(t, records, 1)
+	assert.Equal(t, slog.LevelWarn, records[0].Level)
+
+	// Should NOT log at Error level
+	errorRecords := handler.findByMessage("no permission to list pods in managed namespace")
+	assert.Empty(t, errorRecords)
+}
+
+func TestRestartStalePods_ForbiddenSkipsNamespaceAndContinues(t *testing.T) {
+	s := coreScheme(t)
+
+	// Two namespaces: forbidden-ns (Forbidden) and kyma-system (accessible with a stale pod)
+	forbiddenNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "forbidden-ns"}}
+	kymaSystemNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "kyma-system"}}
+	stalePod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "stale-pod",
+			Namespace: "kyma-system",
+			Annotations: map[string]string{
+				apiv1.AnnotationAddClusterTrustBundle: "true",
+				apiv1.AnnotationCTBHash:               "old-hash",
+			},
+			OwnerReferences: []metav1.OwnerReference{{Name: "deploy", Kind: "ReplicaSet", APIVersion: "apps/v1", UID: "uid1"}},
+		},
+		Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "c", Image: "img"}}},
+	}
+
+	fc := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(forbiddenNs, kymaSystemNs, stalePod).
+		WithInterceptorFuncs(forbiddenListInterceptor(map[string]bool{"forbidden-ns": true})).
+		Build()
+
+	handler := &capturingHandler{}
+	original := slog.Default()
+	slog.SetDefault(slog.New(handler))
+	defer slog.SetDefault(original)
+
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
+	require.NoError(t, err)
+	// The stale pod in kyma-system should still be deleted despite the Forbidden in forbidden-ns
+	assert.True(t, requeue)
+
+	// Verify stale pod was deleted
+	var pods corev1.PodList
+	require.NoError(t, fc.List(context.Background(), &pods))
+	for _, p := range pods.Items {
+		assert.NotEqual(t, "stale-pod", p.Name)
+	}
 }
