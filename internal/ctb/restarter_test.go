@@ -64,7 +64,7 @@ func TestRestartStalePods_DeletesStalePodsOnly(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, stalePod, freshPod, truePod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.True(t, requeue)
 
@@ -99,7 +99,7 @@ func TestRestartStalePods_OrphanPodSkipped(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, orphanPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -115,7 +115,7 @@ func TestRestartStalePods_NoPodsNoRequeue(t *testing.T) {
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}}
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "hash", nil)
 	require.NoError(t, err)
 	assert.False(t, requeue)
 }
@@ -139,7 +139,7 @@ func TestRestartStalePods_MissingHashTreatedAsStale(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, noHashPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.True(t, requeue)
 
@@ -169,7 +169,7 @@ func TestRestartStalePods_CTBHashOnlyIsEligible(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, hashOnlyPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.True(t, requeue)
 
@@ -198,7 +198,7 @@ func TestRestartStalePods_MatchingHashNotDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, matchingPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "current-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "current-hash", nil)
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -228,7 +228,7 @@ func TestRestartStalePods_CTBHashOnlyWithStaleHash_IsDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, nsPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.True(t, requeue)
 
@@ -257,7 +257,7 @@ func TestRestartStalePods_CTBHashOnlyMatchingHash_NotDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, matchingPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "current-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "current-hash", nil)
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -285,7 +285,7 @@ func TestRestartStalePods_OrphanWithCTBHashNotDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, orphanPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -314,7 +314,7 @@ func TestRestartStalePods_NoCTBAnnotations_NotDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, regularPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -342,7 +342,7 @@ func TestRestartStalePods_OrphanWithCTBAnnotationNotDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, orphanPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.False(t, requeue)
 

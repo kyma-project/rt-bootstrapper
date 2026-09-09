@@ -303,12 +303,20 @@ func main() {
 	}
 
 	if cfg.ClusterTrustBundleMapping != nil && slices.Contains(cfg.AvailableFeatures, apiv1.AnnotationAddClusterTrustBundle) {
+		managedNS := make(map[string]bool)
+		if cfg.NamespaceFeatures != nil {
+			for ns := range *cfg.NamespaceFeatures {
+				managedNS[ns] = true
+			}
+		}
+
 		if err := (&ctb.CTBWatcher{
-			Client:         mgr.GetClient(),
-			Scheme:         mgr.GetScheme(),
-			CTBName:        cfg.ClusterTrustBundleMapping.Name,
-			HashHolder:     hashHolder,
-			ResyncInterval: parseDurationOrDefault(cfg.ClusterTrustBundleMapping.ResyncInterval, 5*time.Minute),
+			Client:            mgr.GetClient(),
+			Scheme:            mgr.GetScheme(),
+			CTBName:           cfg.ClusterTrustBundleMapping.Name,
+			HashHolder:        hashHolder,
+			ResyncInterval:    parseDurationOrDefault(cfg.ClusterTrustBundleMapping.ResyncInterval, 5*time.Minute),
+			ManagedNamespaces: managedNS,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "CTBWatcher")
 			os.Exit(1)

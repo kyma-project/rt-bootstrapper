@@ -17,10 +17,11 @@ import (
 // CTBWatcher watches a named ClusterTrustBundle and updates the hash holder on changes.
 type CTBWatcher struct {
 	client.Client
-	Scheme         *runtime.Scheme
-	CTBName        string
-	HashHolder     *HashHolder
-	ResyncInterval time.Duration
+	Scheme              *runtime.Scheme
+	CTBName             string
+	HashHolder          *HashHolder
+	ResyncInterval      time.Duration
+	ManagedNamespaces   map[string]bool
 }
 
 func (w *CTBWatcher) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -44,7 +45,7 @@ func (w *CTBWatcher) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Info("CTB hash updated", "old", oldHash, "new", newHash)
 	}
 
-	requeue, err := RestartStalePods(ctx, w.Client, newHash)
+	requeue, err := RestartStalePods(ctx, w.Client, newHash, w.ManagedNamespaces)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
