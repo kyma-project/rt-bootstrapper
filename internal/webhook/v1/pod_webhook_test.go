@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/kyma-project/rt-bootstrapper/internal/webhook/k8s"
 	apiv1 "github.com/kyma-project/rt-bootstrapper/pkg/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -198,7 +199,112 @@ var _ = Describe("Pod Webhook", func() {
 				corev1.LocalObjectReference{Name: testPullSecret},
 			))
 		})
+	}) // end Context("When creating Pod under Defaulting Webhook")
 
+	Context("ClusterTrustBundle annotation values", func() {
+		ctbMapping := &k8s.ClusterTrustBundle{
+			Name:            "test-ctb",
+			CertWritePath:   "ca.pem",
+			VolumeMountPath: "/etc/ssl/certs",
+			VolumeName:      "rt-bootstrapper-certs",
+		}
+
+		cfgCTB := &apiv1.Config{
+			NamespaceFeatures:         &apiv1.NamespaceFeatures{},
+			Overrides:                 map[string]string{},
+			ClusterTrustBundleMapping: ctbMapping,
+			AvailableFeatures: []string{
+				apiv1.AnnotationAddClusterTrustBundle,
+			},
+		}
+
+		d3 := BuildDefaulterAddClusterTrustBundle()
+
+		defaulterCTB := podCustomDefaulter{
+			availableFeatures: []string{
+				apiv1.AnnotationAddClusterTrustBundle,
+			},
+			defaulters: []PodDefaulter{d3},
+			GetNsAnnotations: func(_ context.Context, name string) (map[string]string, error) {
+				return nil, nil
+			},
+			GetConfig: func(_ context.Context) (*apiv1.Config, error) {
+				return cfgCTB, nil
+			},
+			namespaceDefaultFeatures: cfgCTB.NamespaceDefaultFeatures,
+		}
+
+		It("Should mount CTB when annotation is 'true'", func() {
+			pod := getTestPod(map[string]string{
+				apiv1.AnnotationAddClusterTrustBundle: "true",
+			})
+
+			err := defaulterCTB.Default(ctx, pod)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(pod.Spec.Volumes).Should(HaveLen(1))
+			Expect(pod.Spec.Volumes[0].Name).Should(Equal("rt-bootstrapper-certs"))
+		})
+
+		It("Should mount CTB when annotation is 'restart-on-change'", func() {
+			pod := getTestPod(map[string]string{
+				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
+			})
+
+			err := defaulterCTB.Default(ctx, pod)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(pod.Spec.Volumes).Should(HaveLen(1))
+			Expect(pod.Spec.Volumes[0].Name).Should(Equal("rt-bootstrapper-certs"))
+		})
+
+		It("Should NOT mount CTB when annotation is 'false'", func() {
+			pod := getTestPod(map[string]string{
+				apiv1.AnnotationAddClusterTrustBundle: "false",
+			})
+
+			err := defaulterCTB.Default(ctx, pod)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(pod.Spec.Volumes).Should(BeEmpty())
+		})
+
+		It("Should NOT mount CTB when annotation is 'false' even with namespace defaults", func() {
+			nsFeat := apiv1.NamespaceFeatures{
+				"kyma-system": {apiv1.AnnotationAddClusterTrustBundle},
+			}
+			cfgNS := &apiv1.Config{
+				NamespaceFeatures:         &nsFeat,
+				Overrides:                 map[string]string{},
+				ClusterTrustBundleMapping: ctbMapping,
+				AvailableFeatures: []string{
+					apiv1.AnnotationAddClusterTrustBundle,
+				},
+			}
+
+			defaulterNS := podCustomDefaulter{
+				availableFeatures: []string{
+					apiv1.AnnotationAddClusterTrustBundle,
+				},
+				defaulters: []PodDefaulter{BuildDefaulterAddClusterTrustBundle()},
+				GetNsAnnotations: func(_ context.Context, name string) (map[string]string, error) {
+					return nil, nil
+				},
+				GetConfig: func(_ context.Context) (*apiv1.Config, error) {
+					return cfgNS, nil
+				},
+				namespaceDefaultFeatures: cfgNS.NamespaceDefaultFeatures,
+			}
+
+			pod := getTestPod(map[string]string{
+				apiv1.AnnotationAddClusterTrustBundle: "false",
+			})
+			pod.Namespace = "kyma-system"
+
+			err := defaulterNS.Default(ctx, pod)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(pod.Spec.Volumes).Should(BeEmpty())
+		})
+	})
+
+	Context("When creating Pod under Defaulting Webhook", func() {
 		It("Should inject landscape env var", func() {
 			d5 := BuildDefaulterSetLandscape("NS2")
 			cfgLandscape := &apiv1.Config{
