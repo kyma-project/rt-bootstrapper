@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/kyma-project/rt-bootstrapper/internal/ctb"
 	"github.com/kyma-project/rt-bootstrapper/internal/webhook/k8s"
 	apiv1 "github.com/kyma-project/rt-bootstrapper/pkg/api/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -218,7 +219,8 @@ var _ = Describe("Pod Webhook", func() {
 			},
 		}
 
-		d3 := BuildDefaulterAddClusterTrustBundle()
+		hashHolder := ctb.NewHashHolder()
+		d3 := BuildDefaulterAddClusterTrustBundle(hashHolder)
 
 		defaulterCTB := podCustomDefaulter{
 			availableFeatures: []string{
@@ -283,7 +285,7 @@ var _ = Describe("Pod Webhook", func() {
 				availableFeatures: []string{
 					apiv1.AnnotationAddClusterTrustBundle,
 				},
-				defaulters: []PodDefaulter{BuildDefaulterAddClusterTrustBundle()},
+				defaulters: []PodDefaulter{BuildDefaulterAddClusterTrustBundle(ctb.NewHashHolder())},
 				GetNsAnnotations: func(_ context.Context, name string) (map[string]string, error) {
 					return nil, nil
 				},
@@ -302,7 +304,53 @@ var _ = Describe("Pod Webhook", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(pod.Spec.Volumes).Should(BeEmpty())
 		})
-	})
+
+		It("Should stamp hash annotation when 'restart-on-change' and hash is set", func() {
+			hashHolder.Set("abc123")
+			pod := getTestPod(map[string]string{
+				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
+			})
+			pod.OwnerReferences = []metav1.OwnerReference{{Name: "rs", Kind: "ReplicaSet", APIVersion: "apps/v1", UID: "uid1"}}
+
+			err := defaulterCTB.Default(ctx, pod)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(pod.Annotations[apiv1.AnnotationCTBHash]).Should(Equal("abc123"))
+		})
+
+		It("Should NOT stamp hash on orphan pod with 'restart-on-change'", func() {
+			hashHolder.Set("abc123")
+			pod := getTestPod(map[string]string{
+				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
+			})
+			// No OwnerReferences — orphan pod
+
+			err := defaulterCTB.Default(ctx, pod)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(pod.Annotations).ShouldNot(HaveKey(apiv1.AnnotationCTBHash))
+		})
+
+		It("Should NOT stamp hash annotation when annotation is 'true'", func() {
+			hashHolder.Set("abc123")
+			pod := getTestPod(map[string]string{
+				apiv1.AnnotationAddClusterTrustBundle: "true",
+			})
+
+			err := defaulterCTB.Default(ctx, pod)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(pod.Annotations).ShouldNot(HaveKey(apiv1.AnnotationCTBHash))
+		})
+
+		It("Should NOT stamp hash annotation when hash is empty", func() {
+			hashHolder.Set("")
+			pod := getTestPod(map[string]string{
+				apiv1.AnnotationAddClusterTrustBundle: "restart-on-change",
+			})
+
+			err := defaulterCTB.Default(ctx, pod)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(pod.Annotations).ShouldNot(HaveKey(apiv1.AnnotationCTBHash))
+		})
+	}) // end Context("ClusterTrustBundle annotation values")
 
 	Context("When creating Pod under Defaulting Webhook", func() {
 		It("Should inject landscape env var", func() {

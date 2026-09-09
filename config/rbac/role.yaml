@@ -30,3 +30,11 @@ rules:
   verbs:
   - get
   - patch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - clustertrustbundles
+  verbs:
+  - get
+  - list
+  - watch
