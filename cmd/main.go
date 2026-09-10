@@ -45,6 +45,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
@@ -224,31 +225,6 @@ func main() {
 		metricsServerOptions.KeyName = metricsCertKey
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		Metrics:                metricsServerOptions,
-		WebhookServer:          webhookServer,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "1d97a37c.kyma-project.io",
-		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
-		// when the Manager ends. This requires the binary to immediately end when the
-		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
-		// speeds up voluntary leader transitions as the new leader don't have to wait
-		// LeaseDuration time first.
-		//
-		// In the default scaffold provided, the program ends immediately after
-		// the manager stops, so would be fine to enable this option. However,
-		// if you are doing or is intended to do any operation such as perform cleanups
-		// after the manager stops then its usage might be unsafe.
-		// LeaderElectionReleaseOnCancel: true,
-
-	})
-	if err != nil {
-		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
-	}
-
 	readConfig := func(ctx context.Context) (*apiv1.Config, error) {
 		var rtBootstrapperConfig corev1.ConfigMap
 		if err := rtClient.Get(ctx, client.ObjectKey{
@@ -271,6 +247,50 @@ func main() {
 	cfg, err := readConfig(context.Background())
 	if err != nil {
 		setupLog.Error(err, "unable to read config")
+		os.Exit(1)
+	}
+
+	// Restrict the pod informer cache to only the namespaces where RTB holds
+	// pod-restarter RoleBindings (keys of namespaceFeatures). Without this,
+	// controller-runtime's cache attempts a cluster-scoped LIST/WATCH on pods,
+	// which the RTB service account is not permitted to do, causing a
+	// controller-runtime.cache.UnhandledError loop.
+	podCacheNamespaces := make(map[string]cache.Config)
+	if cfg.NamespaceFeatures != nil {
+		for ns := range *cfg.NamespaceFeatures {
+			podCacheNamespaces[ns] = cache.Config{}
+		}
+	}
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Scheme:                 scheme,
+		Metrics:                metricsServerOptions,
+		WebhookServer:          webhookServer,
+		HealthProbeBindAddress: probeAddr,
+		LeaderElection:         enableLeaderElection,
+		LeaderElectionID:       "1d97a37c.kyma-project.io",
+		Cache: cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
+				// Limit pod caching to the namespaces RTB actually has RBAC for.
+				// This prevents the informer from attempting a cluster-scoped
+				// LIST/WATCH (which would fail with Forbidden and loop forever).
+				&corev1.Pod{}: {Namespaces: podCacheNamespaces},
+			},
+		},
+		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
+		// when the Manager ends. This requires the binary to immediately end when the
+		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
+		// speeds up voluntary leader transitions as the new leader don't have to wait
+		// LeaseDuration time first.
+		//
+		// In the default scaffold provided, the program ends immediately after
+		// the manager stops, so would be fine to enable this option. However,
+		// if you are doing or is intended to do any operation such as perform cleanups
+		// after the manager stops then its usage might be unsafe.
+		// LeaderElectionReleaseOnCancel: true,
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
