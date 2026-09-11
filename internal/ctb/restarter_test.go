@@ -70,7 +70,7 @@ func TestRestartStalePods_DeletesStalePodsOnly(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, stalePod, freshPod, truePod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", map[string]bool{"kyma-system": true})
 	require.NoError(t, err)
 	assert.True(t, requeue)
 
@@ -105,7 +105,7 @@ func TestRestartStalePods_OrphanPodSkipped(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, orphanPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", map[string]bool{"kyma-system": true})
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -121,7 +121,7 @@ func TestRestartStalePods_NoPodsNoRequeue(t *testing.T) {
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}}
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "hash", nil)
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "hash", map[string]bool{"kyma-system": true})
 	require.NoError(t, err)
 	assert.False(t, requeue)
 }
@@ -145,7 +145,7 @@ func TestRestartStalePods_MissingHashTreatedAsStale(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, noHashPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", map[string]bool{"kyma-system": true})
 	require.NoError(t, err)
 	assert.True(t, requeue)
 
@@ -175,7 +175,7 @@ func TestRestartStalePods_CTBHashOnlyIsEligible(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, hashOnlyPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", map[string]bool{"kyma-system": true})
 	require.NoError(t, err)
 	assert.True(t, requeue)
 
@@ -204,7 +204,7 @@ func TestRestartStalePods_MatchingHashNotDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, matchingPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "current-hash", nil)
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "current-hash", map[string]bool{"kyma-system": true})
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -234,7 +234,7 @@ func TestRestartStalePods_CTBHashOnlyWithStaleHash_IsDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, nsPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", map[string]bool{"kyma-system": true})
 	require.NoError(t, err)
 	assert.True(t, requeue)
 
@@ -263,7 +263,7 @@ func TestRestartStalePods_CTBHashOnlyMatchingHash_NotDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, matchingPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "current-hash", nil)
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "current-hash", map[string]bool{"kyma-system": true})
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -291,7 +291,7 @@ func TestRestartStalePods_OrphanWithCTBHashNotDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, orphanPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", map[string]bool{"kyma-system": true})
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -320,7 +320,7 @@ func TestRestartStalePods_NoCTBAnnotations_NotDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, regularPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", map[string]bool{"kyma-system": true})
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -348,7 +348,7 @@ func TestRestartStalePods_OrphanWithCTBAnnotationNotDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, orphanPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", map[string]bool{"kyma-system": true})
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -452,7 +452,9 @@ func TestRestartStalePods_ForbiddenOnManagedNamespace_LogsError(t *testing.T) {
 	assert.Contains(t, records[0].Attrs["error"], "forbidden")
 }
 
-func TestRestartStalePods_ForbiddenOnUnmanagedNamespace_LogsWarn(t *testing.T) {
+func TestRestartStalePods_UnmanagedNamespace_Skipped(t *testing.T) {
+	// Unmanaged namespaces are skipped entirely before any pod List call.
+	// The interceptor would return Forbidden, but it must never be reached.
 	s := coreScheme(t)
 
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "customer-ns"}}
@@ -468,54 +470,51 @@ func TestRestartStalePods_ForbiddenOnUnmanagedNamespace_LogsWarn(t *testing.T) {
 	slog.SetDefault(slog.New(handler))
 	defer slog.SetDefault(original)
 
-	// customer-ns is NOT in the managed set
+	// customer-ns is NOT in the managed set — it must be silently skipped
 	managedNS := map[string]bool{"kyma-system": true}
 	requeue, err := ctb.RestartStalePods(context.Background(), fc, "hash", managedNS)
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
-	// Should log at Warn level for unmanaged namespace
-	records := handler.findByMessage("no permission to list pods, skipping namespace")
-	require.Len(t, records, 1)
-	assert.Equal(t, slog.LevelWarn, records[0].Level)
-	assert.Equal(t, "customer-ns", records[0].Attrs["namespace"])
+	// No log at any level for unmanaged namespace — it is skipped before the List
+	assert.Empty(t, handler.findByMessage("no permission to list pods, skipping namespace"))
+	assert.Empty(t, handler.findByMessage("no permission to list pods in managed namespace"))
 }
 
-func TestRestartStalePods_ForbiddenWithNilManagedNamespaces_LogsWarn(t *testing.T) {
+func TestRestartStalePods_NilManagedNamespaces_AllNamespacesSkipped(t *testing.T) {
+	// When managedNamespaces is nil, every namespace is unmanaged and skipped.
 	s := coreScheme(t)
 
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "some-ns"}}
+	stalePod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "stale-pod",
+			Namespace: "some-ns",
+			Annotations: map[string]string{
+				apiv1.AnnotationAddClusterTrustBundle: "true",
+				apiv1.AnnotationCTBHash:               "old-hash",
+			},
+			OwnerReferences: []metav1.OwnerReference{{Name: "deploy", Kind: "ReplicaSet", APIVersion: "apps/v1", UID: "uid1"}},
+		},
+		Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "c", Image: "img"}}},
+	}
 
 	fc := fake.NewClientBuilder().
 		WithScheme(s).
-		WithObjects(ns).
-		WithInterceptorFuncs(forbiddenListInterceptor(map[string]bool{"some-ns": true})).
+		WithObjects(ns, stalePod).
 		Build()
 
-	handler := &capturingHandler{}
-	original := slog.Default()
-	slog.SetDefault(slog.New(handler))
-	defer slog.SetDefault(original)
-
-	// nil managedNamespaces — all Forbidden errors should be warnings
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "hash", nil)
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
+	// nil managedNamespaces → every namespace skipped → no deletions
 	assert.False(t, requeue)
-
-	records := handler.findByMessage("no permission to list pods, skipping namespace")
-	require.Len(t, records, 1)
-	assert.Equal(t, slog.LevelWarn, records[0].Level)
-
-	// Should NOT log at Error level
-	errorRecords := handler.findByMessage("no permission to list pods in managed namespace")
-	assert.Empty(t, errorRecords)
 }
 
-func TestRestartStalePods_ForbiddenSkipsNamespaceAndContinues(t *testing.T) {
+func TestRestartStalePods_UnmanagedNamespaceSkipped_ManagedStillProcessed(t *testing.T) {
+	// Unmanaged namespaces are skipped; managed ones are still processed.
 	s := coreScheme(t)
 
-	// Two namespaces: forbidden-ns (Forbidden) and kyma-system (accessible with a stale pod)
-	forbiddenNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "forbidden-ns"}}
+	unmanagedNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "unmanaged-ns"}}
 	kymaSystemNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "kyma-system"}}
 	stalePod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -530,23 +529,19 @@ func TestRestartStalePods_ForbiddenSkipsNamespaceAndContinues(t *testing.T) {
 		Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "c", Image: "img"}}},
 	}
 
+	// unmanaged-ns would return Forbidden — but it must never be reached
 	fc := fake.NewClientBuilder().
 		WithScheme(s).
-		WithObjects(forbiddenNs, kymaSystemNs, stalePod).
-		WithInterceptorFuncs(forbiddenListInterceptor(map[string]bool{"forbidden-ns": true})).
+		WithObjects(unmanagedNs, kymaSystemNs, stalePod).
+		WithInterceptorFuncs(forbiddenListInterceptor(map[string]bool{"unmanaged-ns": true})).
 		Build()
 
-	handler := &capturingHandler{}
-	original := slog.Default()
-	slog.SetDefault(slog.New(handler))
-	defer slog.SetDefault(original)
-
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
+	managedNS := map[string]bool{"kyma-system": true}
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", managedNS)
 	require.NoError(t, err)
-	// The stale pod in kyma-system should still be deleted despite the Forbidden in forbidden-ns
+	// Stale pod in kyma-system is deleted
 	assert.True(t, requeue)
 
-	// Verify stale pod was deleted
 	var pods corev1.PodList
 	require.NoError(t, fc.List(context.Background(), &pods))
 	for _, p := range pods.Items {

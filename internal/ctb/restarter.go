@@ -10,13 +10,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// RestartStalePods scans all namespaces for pods with annotation value "true"
+// RestartStalePods scans managed namespaces for pods with annotation value "true"
 // whose CTB hash doesn't match desiredHash, and deletes them.
 // Pods without ownerReferences are skipped (orphan protection).
 // managedNamespaces is the set of namespace names where RTB is expected to
-// have pod permissions (i.e. keys of namespaceFeatures). A Forbidden error
-// on a managed namespace is logged as an error; on any other namespace it is
-// logged as a warning and silently skipped.
+// have pod permissions (i.e. keys of namespaceFeatures). Only these namespaces
+// are visited: the pod informer cache is restricted to the same set, so calling
+// c.List for any other namespace would return "unknown namespace for the cache".
+// A Forbidden error on a managed namespace is logged as an error (unexpected
+// RBAC misconfiguration); other namespaces are silently skipped.
 // Returns true if any pods were deleted (requeue needed).
 func RestartStalePods(ctx context.Context, c client.Client, desiredHash string, managedNamespaces map[string]bool) (bool, error) {
 	log := slog.Default().With("controller", "ctb-restarter", "desiredHash", desiredHash)
@@ -28,14 +30,16 @@ func RestartStalePods(ctx context.Context, c client.Client, desiredHash string, 
 
 	var anyDeleted bool
 	for _, ns := range namespaces.Items {
+		// Skip namespaces outside the pod cache scope. The pod informer cache is
+		// restricted to managedNamespaces (keys of namespaceFeatures); calling
+		// c.List for any other namespace returns "unknown namespace for the cache".
+		if !managedNamespaces[ns.Name] {
+			continue
+		}
 		deleted, err := restartStalePodsInNamespace(ctx, c, ns.Name, desiredHash, log)
 		if err != nil {
 			if errors.IsForbidden(err) {
-				if managedNamespaces[ns.Name] {
-					log.Error("no permission to list pods in managed namespace", "namespace", ns.Name, "error", err)
-				} else {
-					log.Warn("no permission to list pods, skipping namespace", "namespace", ns.Name)
-				}
+				log.Error("no permission to list pods in managed namespace", "namespace", ns.Name, "error", err)
 				continue
 			}
 			return false, err
