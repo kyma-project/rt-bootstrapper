@@ -52,3 +52,45 @@ Pods without owner references SHALL NOT be deleted by the restarter regardless o
 - **WHEN** a pod has `ctb-hash` annotation with a stale hash
 - **AND** the pod has no owner references
 - **THEN** `RestartStalePods` SHALL NOT delete the pod and SHALL log a warning
+
+### Requirement: Forbidden errors on managed namespaces are logged as errors
+When `RestartStalePods` encounters a Forbidden error listing pods in a namespace that is a key in `namespaceFeatures`, it SHALL log the event at Error level including the full error detail, and SHALL continue processing remaining namespaces.
+
+#### Scenario: Forbidden error on a managed namespace logs an error
+- **WHEN** `RestartStalePods` lists pods in a namespace that is a key in `namespaceFeatures`
+- **AND** the API server returns a Forbidden error
+- **THEN** the restarter SHALL log a message at Error level containing the namespace name and the error
+- **AND** the restarter SHALL skip the namespace and continue with the next one
+
+### Requirement: Only managed namespaces are visited by RestartStalePods
+`RestartStalePods` SHALL only attempt to list pods in namespaces that are keys in `managedNamespaces`. Namespaces not in this set SHALL be skipped entirely, without issuing any API call or log entry for them.
+
+This is required because the pod informer cache is restricted to the same set of namespaces. Calling `c.List` for a namespace outside the cache returns `"unknown namespace for the cache"`, which is not a Forbidden error and would propagate as a reconciler error.
+
+#### Scenario: Unmanaged namespace is silently skipped
+- **WHEN** `RestartStalePods` iterates cluster namespaces
+- **AND** a namespace is NOT a key in `managedNamespaces`
+- **THEN** the restarter SHALL skip that namespace without issuing a pod List call
+- **AND** SHALL NOT emit any log entry for that namespace
+
+#### Scenario: Nil managed namespaces skips all namespaces
+- **WHEN** `RestartStalePods` is called with a nil `managedNamespaces` map
+- **THEN** every namespace is treated as unmanaged and skipped
+- **AND** no pods are deleted
+
+### Requirement: Pod informer cache is restricted to managed namespaces
+The controller-runtime manager SHALL configure the pod informer cache to watch only the namespaces listed as keys in `namespaceFeatures`. This prevents the cache from attempting a cluster-scoped pod LIST/WATCH, which the RTB service account is not permitted to perform and which would cause a `controller-runtime.cache.UnhandledError` retry loop.
+
+#### Scenario: Cache does not attempt cluster-scoped pod watch
+- **WHEN** the manager starts
+- **AND** `namespaceFeatures` contains namespaces e.g. `kyma-system`, `istio-system`, `sap-transp-proxy-system`
+- **THEN** the pod informer SHALL only establish watches for those namespaces
+- **AND** SHALL NOT attempt a cluster-scoped `LIST /api/v1/pods`
+
+#### Scenario: Cache namespace list is derived from config at startup
+- **WHEN** the manager is initialised
+- **THEN** it SHALL read `namespaceFeatures` from the config before calling `ctrl.NewManager`
+- **AND** pass the namespace set to `cache.Options.ByObject` for `*v1.Pod`
+
+### Requirement: RestartStalePods accepts a set of managed namespaces
+`RestartStalePods` SHALL accept a `managedNamespaces map[string]bool` parameter representing the set of namespace names where RTB is expected to have pod-list RBAC. Only namespaces present in this map are visited; a nil map causes all namespaces to be skipped.

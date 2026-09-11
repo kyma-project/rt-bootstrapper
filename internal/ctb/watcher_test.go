@@ -151,10 +151,11 @@ func TestCTBWatcher_Reconcile_TriggersRestart(t *testing.T) {
 	holder.Set("old-hash") // simulate previous state
 
 	watcher := &ctb.CTBWatcher{
-		Client:     fc,
-		Scheme:     s,
-		CTBName:    "my-ctb",
-		HashHolder: holder,
+		Client:            fc,
+		Scheme:            s,
+		CTBName:           "my-ctb",
+		HashHolder:        holder,
+		ManagedNamespaces: map[string]bool{"kyma-system": true},
 	}
 
 	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: "my-ctb"}}
