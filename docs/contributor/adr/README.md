@@ -58,6 +58,7 @@ The webhook supports multiple manipulations. The default configuration, managed 
 - [ADR-005 – Self-Managed caBundle Using certwatcher Callback](adr-005-self-managed-cabundle.md)
 - [ADR-006 – Secret Synchronization as an Internal Controller](adr-006-secret-synchronization-internal-controller.md)
 - [ADR-007 – Direct Runtime Configuration Synchronization](adr-007-direct-runtime-configuration-sync.md)
+- [ADR-008 – Service Restart on Sensitive Data Rotation](adr-008-service-restart-on-sensitive-data-rotation.md)
 
 ### Resource Synchronization
 
