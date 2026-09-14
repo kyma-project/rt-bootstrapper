@@ -1,7 +1,9 @@
 package ctb_test
 
 import (
+	"bytes"
 	"context"
+	"log/slog"
 	"testing"
 
 	"github.com/kyma-project/rt-bootstrapper/internal/ctb"
@@ -9,10 +11,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 func coreScheme(t *testing.T) *runtime.Scheme {
@@ -64,7 +70,7 @@ func TestRestartStalePods_DeletesStalePodsOnly(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, stalePod, freshPod, truePod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.True(t, requeue)
 
@@ -99,7 +105,7 @@ func TestRestartStalePods_OrphanPodSkipped(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, orphanPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -115,7 +121,7 @@ func TestRestartStalePods_NoPodsNoRequeue(t *testing.T) {
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}}
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "hash", nil)
 	require.NoError(t, err)
 	assert.False(t, requeue)
 }
@@ -139,7 +145,7 @@ func TestRestartStalePods_MissingHashTreatedAsStale(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, noHashPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.True(t, requeue)
 
@@ -169,7 +175,7 @@ func TestRestartStalePods_CTBHashOnlyIsEligible(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, hashOnlyPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.True(t, requeue)
 
@@ -198,7 +204,7 @@ func TestRestartStalePods_MatchingHashNotDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, matchingPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "current-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "current-hash", nil)
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -228,7 +234,7 @@ func TestRestartStalePods_CTBHashOnlyWithStaleHash_IsDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, nsPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.True(t, requeue)
 
@@ -257,7 +263,7 @@ func TestRestartStalePods_CTBHashOnlyMatchingHash_NotDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, matchingPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "current-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "current-hash", nil)
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -285,7 +291,7 @@ func TestRestartStalePods_OrphanWithCTBHashNotDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, orphanPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -314,7 +320,7 @@ func TestRestartStalePods_NoCTBAnnotations_NotDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, regularPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -342,7 +348,7 @@ func TestRestartStalePods_OrphanWithCTBAnnotationNotDeleted(t *testing.T) {
 
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(ns, orphanPod).Build()
 
-	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash")
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", nil)
 	require.NoError(t, err)
 	assert.False(t, requeue)
 
@@ -351,4 +357,83 @@ func TestRestartStalePods_OrphanWithCTBAnnotationNotDeleted(t *testing.T) {
 	require.NoError(t, fc.List(context.Background(), &pods))
 	assert.Len(t, pods.Items, 1)
 	assert.Equal(t, "orphan-ctb-pod", pods.Items[0].Name)
+}
+
+// captureLogs redirects slog.Default() to a buffer for the duration of a test,
+// restoring the original handler on cleanup.
+func captureLogs(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	var buf bytes.Buffer
+	original := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})))
+	t.Cleanup(func() { slog.SetDefault(original) })
+	return &buf
+}
+
+// forbiddenOnNamespace returns an interceptor client that returns a Forbidden
+// error when List is called for any of the given namespaces, and delegates to
+// the real fake client for all other calls.
+func forbiddenOnNamespace(base client.WithWatch, namespaces ...string) client.Client {
+	blocked := make(map[string]bool, len(namespaces))
+	for _, ns := range namespaces {
+		blocked[ns] = true
+	}
+	return interceptor.NewClient(base, interceptor.Funcs{
+		List: func(ctx context.Context, c client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+			if _, ok := list.(*corev1.PodList); ok {
+				lo := &client.ListOptions{}
+				for _, o := range opts {
+					o.ApplyToList(lo)
+				}
+				if lo.Namespace != "" && blocked[lo.Namespace] {
+					return errors.NewForbidden(schema.GroupResource{Resource: "pods"}, "",
+						nil)
+				}
+			}
+			return c.List(ctx, list, opts...)
+		},
+	})
+}
+
+// Scenario 2 / 3 — managed namespace with no RoleBinding (Forbidden) must log ERROR.
+func TestRestartStalePods_ManagedNamespace_Forbidden_LogsError(t *testing.T) {
+	s := coreScheme(t)
+
+	nsManaged := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "istio-system"}}
+	base := fake.NewClientBuilder().WithScheme(s).WithObjects(nsManaged).Build()
+	fc := forbiddenOnNamespace(base, "istio-system")
+
+	buf := captureLogs(t)
+
+	managedNamespaces := map[string]struct{}{"istio-system": {}}
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", managedNamespaces)
+	require.NoError(t, err)
+	assert.False(t, requeue)
+
+	logs := buf.String()
+	assert.Contains(t, logs, "ERROR", "expected ERROR log for Forbidden on a managed namespace")
+	assert.Contains(t, logs, "istio-system")
+	assert.NotContains(t, logs, "WARN", "managed-namespace Forbidden must not downgrade to WARN")
+}
+
+// Scenario 4 / 5 — unmanaged namespace with no RoleBinding (Forbidden) must log WARN, not ERROR.
+func TestRestartStalePods_UnmanagedNamespace_Forbidden_LogsWarn(t *testing.T) {
+	s := coreScheme(t)
+
+	nsUnmanaged := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}}
+	base := fake.NewClientBuilder().WithScheme(s).WithObjects(nsUnmanaged).Build()
+	fc := forbiddenOnNamespace(base, "default")
+
+	buf := captureLogs(t)
+
+	// "default" is NOT in managedNamespaces
+	managedNamespaces := map[string]struct{}{"kyma-system": {}}
+	requeue, err := ctb.RestartStalePods(context.Background(), fc, "new-hash", managedNamespaces)
+	require.NoError(t, err)
+	assert.False(t, requeue)
+
+	logs := buf.String()
+	assert.Contains(t, logs, "WARN", "expected WARN log for Forbidden on an unmanaged namespace")
+	assert.Contains(t, logs, "default")
+	assert.NotContains(t, logs, "ERROR", "unmanaged-namespace Forbidden must not escalate to ERROR")
 }

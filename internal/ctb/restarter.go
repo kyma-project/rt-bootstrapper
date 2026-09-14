@@ -13,8 +13,12 @@ import (
 // RestartStalePods scans all namespaces for pods with annotation value "true"
 // whose CTB hash doesn't match desiredHash, and deletes them.
 // Pods without ownerReferences are skipped (orphan protection).
+// managedNamespaces is the set of namespace names that have an RTB pod-restarter
+// RoleBinding. A Forbidden error on a managed namespace is logged at ERROR level
+// (real RBAC misconfiguration); on an unmanaged namespace it is logged at WARN
+// (expected — RTB intentionally has no permissions there).
 // Returns true if any pods were deleted (requeue needed).
-func RestartStalePods(ctx context.Context, c client.Client, desiredHash string) (bool, error) {
+func RestartStalePods(ctx context.Context, c client.Client, desiredHash string, managedNamespaces map[string]struct{}) (bool, error) {
 	log := slog.Default().With("controller", "ctb-restarter", "desiredHash", desiredHash)
 
 	var namespaces corev1.NamespaceList
@@ -27,7 +31,12 @@ func RestartStalePods(ctx context.Context, c client.Client, desiredHash string) 
 		deleted, err := restartStalePodsInNamespace(ctx, c, ns.Name, desiredHash, log)
 		if err != nil {
 			if errors.IsForbidden(err) {
-				log.Warn("no permission to list pods, skipping namespace", "namespace", ns.Name)
+				_, managed := managedNamespaces[ns.Name]
+				if managed {
+					log.Error("no permission to list pods in managed namespace", "namespace", ns.Name, "error", err)
+				} else {
+					log.Warn("no permission to list pods, skipping namespace", "namespace", ns.Name)
+				}
 				continue
 			}
 			return false, err
