@@ -46,6 +46,7 @@ type ClusterTrustBundle struct {
 	CertWritePath   string `json:"certWritePath" validate:"required"`
 	VolumeMountPath string `json:"volumeMountPath" validate:"required"`
 	VolumeName      string `json:"volumeName" validate:"required"`
+	ResyncInterval  string `json:"resyncInterval,omitempty"`
 }
 
 func (r ClusterTrustBundle) ClusterTrustedBundle() corev1.Volume {

@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"slices"
 
+	"github.com/kyma-project/rt-bootstrapper/internal/ctb"
 	"github.com/kyma-project/rt-bootstrapper/internal/webhook/k8s"
 	apiv1 "github.com/kyma-project/rt-bootstrapper/pkg/api/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -115,7 +116,7 @@ func BuildPodDefaulterAddImagePullSecrets(secretName string) PodDefaulter {
 	})
 }
 
-func BuildDefaulterAddClusterTrustBundle() PodDefaulter {
+func BuildDefaulterAddClusterTrustBundle(hashHolder *ctb.HashHolder) PodDefaulter {
 	// slog.Debug("building volume", mapping.KeysAndValues()...)
 
 	handleVolumeMount := func(cs []corev1.Container, m *k8s.ClusterTrustBundle) bool {
@@ -187,7 +188,36 @@ func BuildDefaulterAddClusterTrustBundle() PodDefaulter {
 		return handleContainers(true, p, c.ClusterTrustBundleMapping)
 	}
 
-	return defaultPod(handleClusterTrustBundle, updateOpts{
-		activeAnnotations: annotationAddClusterTrustBundle,
-	})
+	return func(p *corev1.Pod, nsAnnotations map[string]string, cfg *apiv1.Config) (bool, error) {
+		kvs := keysAndValues(p)
+
+		// Explicit opt-out: pod annotation "false" overrides everything, including namespace defaults.
+		if apiv1.CTBExplicitOptOut(p.Annotations) {
+			slog.Default().WithGroup("args").With(kvs...).Debug("CTB explicit opt out")
+			return false, nil
+		}
+
+		defaultFeatures := cfg.NamespaceDefaultFeatures(p.Namespace)
+		expandedNamespaceAnnotations := cfg.ExpandAnnotationAll(nsAnnotations)
+		expandedPodAnnotations := cfg.ExpandAnnotationAll(p.Annotations)
+
+		for _, annotations := range []map[string]string{defaultFeatures, expandedNamespaceAnnotations, expandedPodAnnotations} {
+			if apiv1.CTBMountEnabled(annotations) || k8s.Contains(annotations, annotationAddClusterTrustBundle) {
+				slog.Default().WithGroup("args").With(kvs...).Debug("CTB pod defaulting opt in")
+				modified := handleClusterTrustBundle(p, cfg)
+				// Stamp hash annotation on every CTB-opted-in pod when hash is set
+				if hash := hashHolder.Get(); hash != "" {
+					if p.Annotations == nil {
+						p.Annotations = map[string]string{}
+					}
+					p.Annotations[apiv1.AnnotationCTBHash] = hash
+					modified = true
+				}
+				return modified, nil
+			}
+		}
+
+		slog.Default().WithGroup("args").With(kvs...).Debug("CTB opt out")
+		return false, nil
+	}
 }

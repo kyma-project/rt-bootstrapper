@@ -23,6 +23,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/kyma-project/rt-bootstrapper/internal/ctb"
 	apiv1 "github.com/kyma-project/rt-bootstrapper/pkg/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -35,6 +36,7 @@ type SetupPodWebhookWithManagerOpts struct {
 	NamespaceDefaultFeatures func(string) map[string]string
 	ImagePullSecretName      string
 	Landscape                string
+	HashHolder               *ctb.HashHolder
 	GetConfig
 }
 
@@ -48,7 +50,7 @@ func SetupPodWebhookWithManager(mgr ctrl.Manager, opts SetupPodWebhookWithManage
 	defaulterEntries := []defaulterEntry{
 		{annotation: apiv1.AnnotationAlterImgRegistry, defaulter: BuildPodDefaulterAlterImgRegistry()},
 		{annotation: apiv1.AnnotationSetPullSecret, defaulter: BuildPodDefaulterAddImagePullSecrets(opts.ImagePullSecretName)},
-		{annotation: apiv1.AnnotationAddClusterTrustBundle, defaulter: BuildDefaulterAddClusterTrustBundle()},
+		{annotation: apiv1.AnnotationAddClusterTrustBundle, defaulter: BuildDefaulterAddClusterTrustBundle(opts.HashHolder)},
 		{annotation: apiv1.AnnotationSetFipsMode, defaulter: BuildDefaulterFipsMode()},
 		{annotation: apiv1.AnnotationSetLandscape, defaulter: BuildDefaulterSetLandscape(opts.Landscape)},
 	}
