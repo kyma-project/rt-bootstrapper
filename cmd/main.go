@@ -231,6 +231,14 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "1d97a37c.kyma-project.io",
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				// Pods are only accessed by RestartStalePods which lists
+				// per-namespace.  Bypassing the cache avoids a cluster-scoped
+				// List/Watch that our namespaced RoleBindings cannot satisfy.
+				DisableFor: []client.Object{&corev1.Pod{}},
+			},
+		},
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the
 		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
