@@ -39,7 +39,7 @@ jobs:
           make test | tee rt-bootstrapper-unit-tests.txt
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: rt-bootstrapper-unit-tests
           path: rt-bootstrapper-unit-tests.txt
@@ -81,7 +81,7 @@ jobs:
           set -o pipefail
           make test-e2e | tee rt-bootstrapper-e2e-tests.txt
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: rt-bootstrapper-e2e-tests
           path: rt-bootstrapper-e2e-tests.txt
