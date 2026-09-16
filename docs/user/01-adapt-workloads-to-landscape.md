@@ -116,12 +116,12 @@ The restart controller can only operate in namespaces where the Runtime Bootstra
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: pod-restarter-my-namespace
+  name: rt-bootstrapper-pod-restarter-my-namespace
   namespace: my-namespace
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: pod-restarter-role
+  name: rt-bootstrapper-pod-restarter-role
 subjects:
 - kind: ServiceAccount
   name: rt-bootstrapper-controller-manager
