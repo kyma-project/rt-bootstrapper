@@ -37,3 +37,4 @@ dist
 # vendored files
 vendor
 .superpowers/
+.worktrees
