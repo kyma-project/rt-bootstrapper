@@ -20,7 +20,8 @@ on:
       - .gitignore
       - "**.md"
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   unit-tests:

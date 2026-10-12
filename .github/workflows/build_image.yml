@@ -22,7 +22,7 @@ on:
       - .gitignore
       - "**.md"
 
-permissions: read-all
+permissions: {}
 
 jobs:
   gate:
