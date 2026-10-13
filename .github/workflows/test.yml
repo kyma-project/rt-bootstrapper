@@ -20,6 +20,9 @@ on:
       - .gitignore
       - "**.md"
 
+permissions:
+  contents: read
+
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
