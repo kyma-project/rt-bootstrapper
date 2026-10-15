@@ -22,6 +22,8 @@ on:
       - .gitignore
       - "**.md"
 
+permissions: {}
+
 jobs:
   gate:
     runs-on: ubuntu-latest
