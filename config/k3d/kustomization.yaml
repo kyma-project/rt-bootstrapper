@@ -10,6 +10,7 @@ resources:
 - cluster_trust_bundle.yaml
 - ../config
 - ../webhook
+- ../network-policy
 
 patches:
   - path: manager_webhook_patch.yaml

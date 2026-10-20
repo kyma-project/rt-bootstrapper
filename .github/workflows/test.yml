@@ -1,6 +1,7 @@
 name: Tests
 
 on:
+  workflow_call:
   push:
     branches:
       - main
@@ -24,32 +25,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone the code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
-          go-version: '~1.25.5'
+          go-version-file: 'go.mod'
 
       - name: Running Tests
         run: |
           go mod tidy
           set -o pipefail
-          make test | tee test.log
+          make test | tee rt-bootstrapper-unit-tests.txt
 
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
           name: rt-bootstrapper-unit-tests
-          path: |
-            test.log
-
+          path: rt-bootstrapper-unit-tests.txt
       - name: Generate unit-test summary
         run: |
           {
-            echo "# rt-bootsrapper tests output:"
+            echo "# rt-bootsrapper unit tests output:"
             printf '\n```\n'
-            cat test.log
+            cat rt-bootstrapper-unit-tests.txt
             printf '\n```\n'
           } >> $GITHUB_STEP_SUMMARY
 
@@ -57,12 +56,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone the code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
-          go-version: "~1.25.5"
+          go-version-file: 'go.mod'
 
       - name: Install the latest version of K3D
         env:
@@ -80,5 +79,18 @@ jobs:
         run: |
           go mod tidy
           set -o pipefail
-          make test-e2e
+          make test-e2e | tee rt-bootstrapper-e2e-tests.txt
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: rt-bootstrapper-e2e-tests
+          path: rt-bootstrapper-e2e-tests.txt
+      - name: Generate e2e-test summary
+        run: |
+          {
+            echo "# rt-bootsrapper e2e tests output:"
+            printf '\n```\n'
+            cat rt-bootstrapper-e2e-tests.txt
+            printf '\n```\n'
+          } >> $GITHUB_STEP_SUMMARY
 

@@ -3,8 +3,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 
 images:
 - name: controller
-  newName: example.com/rt-bootstrapper
-  newTag: v0.0.1
+  newName: controller
+  newTag: latest
 
 resources:
 - priority_class.yaml
@@ -12,6 +12,3 @@ resources:
 
 patches:
 - path: priority_class_patch.yaml
-- path: manager_patch.yaml
-  target:
-    kind: Deployment

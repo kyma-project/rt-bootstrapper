@@ -2,9 +2,6 @@ apiVersion: v1
 data:
   rt-bootstrapper-config.json: |
     {
-      "imagePullSecretName": "registry-credentials",
-      "imagePullSecretNamespace": "kyma-system",
-      "secretSyncInterval": "1m",
       "overrides": {
         "replace.me": "localhost:5001",
         "example.com": "localhost:5002"
@@ -15,10 +12,16 @@ data:
         "volumeMountPath": "/etc/ssl/certs",
         "volumeName": "rt-bootstrapper-certs"
       },
+      "availableFeatures": [
+        "rt-cfg.kyma-project.io/alter-img-registry",
+        "rt-cfg.kyma-project.io/add-img-pull-secret",
+        "rt-cfg.kyma-project.io/add-cluster-trust-bundle",
+        "rt-cfg.kyma-project.io/set-fips-mode",
+        "rt-cfg.kyma-project.io/set-landscape"
+      ],
       "namespaceFeatures": {
-        "kyma-system": [ 
-          "rt-cfg.kyma-project.io/alter-img-registry",
-          "rt-cfg.kyma-project.io/add-img-pull-secret"
+        "kyma-system": [
+          "rt-cfg.kyma-project.io/all"
         ]
       }
     }

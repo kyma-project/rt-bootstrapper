@@ -35,8 +35,10 @@ import (
 // namespace where the project is deployed in
 const namespace = "kyma-system"
 
-const testNamespace1 = "rt-bootstrapper-test1"
-const testNamespace2 = "rt-bootstrapper-test2"
+const (
+	testNamespace1 = "rt-bootstrapper-test1"
+	testNamespace2 = "rt-bootstrapper-test2"
+)
 
 // serviceAccountName created for the project
 const serviceAccountName = "rt-bootstrapper-controller-manager"
@@ -75,6 +77,7 @@ var _ = Describe("Manager", Ordered, func() {
 			"rt-cfg.kyma-project.io/add-img-pull-secret=true",
 			"rt-cfg.kyma-project.io/add-cluster-trust-bundle=true",
 			"rt-cfg.kyma-project.io/set-fips-mode=true",
+			"rt-cfg.kyma-project.io/set-landscape=true",
 		)
 		_, err = utils.Run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to create namespace")
@@ -98,6 +101,18 @@ var _ = Describe("Manager", Ordered, func() {
 		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", projectImage))
 		_, err = utils.Run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager")
+
+		By("patching egress network policy to allow k3d apiserver port 6443")
+		Eventually(func(g Gomega) {
+			cmd = exec.Command("kubectl", "patch", "networkpolicy",
+				"rt-bootstrapper-kyma-project.io--rt-bootstrapper--allow-egress-to-apiserver",
+				"-n", namespace,
+				"--type=json",
+				`-p=[{"op":"replace","path":"/spec/egress/0/ports/0/port","value":6443}]`,
+			)
+			_, err = utils.Run(cmd)
+			g.Expect(err).NotTo(HaveOccurred(), "Failed to patch egress network policy")
+		}).Should(Succeed())
 	})
 
 	// After all tests have been executed, clean up by undeploying the controller, uninstalling CRDs,
@@ -223,7 +238,7 @@ var _ = Describe("Manager", Ordered, func() {
 				cmd := exec.Command("kubectl", "get", "endpoints", metricsServiceName, "-n", namespace)
 				output, err := utils.Run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(ContainSubstring("8080"), "Metrics endpoint is not ready")
+				g.Expect(output).To(ContainSubstring(":8080"), "Metrics endpoint is not ready")
 			}
 			Eventually(verifyMetricsEndpointReady).Should(Succeed())
 
@@ -232,7 +247,7 @@ var _ = Describe("Manager", Ordered, func() {
 				cmd := exec.Command("kubectl", "logs", controllerPodName, "-n", namespace)
 				output, err := utils.Run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(ContainSubstring("controller-runtime.metrics\tServing metrics server"),
+				g.Expect(output).To(ContainSubstring("Serving metrics server"),
 					"Metrics server not yet started")
 			}
 			Eventually(verifyMetricsServerStarted).Should(Succeed())
@@ -243,6 +258,11 @@ var _ = Describe("Manager", Ordered, func() {
 				"--image=curlimages/curl:latest",
 				"--overrides",
 				fmt.Sprintf(`{
+					"metadata": {
+						"labels": {
+							"networking.kyma-project.io/metrics-scraping": "allowed"
+						}
+					},
 					"spec": {
 						"containers": [{
 							"name": "curl",
@@ -277,7 +297,7 @@ var _ = Describe("Manager", Ordered, func() {
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(Equal("Succeeded"), "curl pod in wrong status")
 			}
-			Eventually(verifyCurlUp, 5*time.Minute).Should(Succeed())
+			Eventually(verifyCurlUp, 3*time.Minute).Should(Succeed())
 
 			By("getting the metrics by checking curl-metrics logs")
 			verifyMetricsAvailable := func(g Gomega) {
@@ -325,7 +345,6 @@ var _ = Describe("Manager", Ordered, func() {
 		})
 
 		It("should work with all features activated on ns lvl", func() {
-
 			By("applying the deployment in opt in namespace")
 			cmd := exec.Command("kubectl", "apply",
 				"-f", "./test/e2e/testdata/test2.yaml",
@@ -385,12 +404,19 @@ var _ = Describe("Manager", Ordered, func() {
 				}))
 			}
 
-			By("having 'defaulted' annotation added on pod")
-			Expect(pod.Annotations[apiv1.AnnotationDefaulted]).Should(Equal("true"))
+			By("having KYMA_LANDSCAPE env var set on all containers")
+			for _, container := range allContainers {
+				Expect(container.Env).Should(ContainElement(corev1.EnvVar{
+					Name:  apiv1.EnvKymaLandscape,
+					Value: "TEST",
+				}))
+			}
+
+			By("having 'modified' annotation added on pod")
+			Expect(pod.Annotations[apiv1.AnnotationModified]).Should(Equal("true"))
 		})
 
 		It("should work with all features activated on pod lvl", func() {
-
 			By("applying the deployment in opt in namespace")
 			cmd := exec.Command("kubectl", "apply",
 				"-f", "./test/e2e/testdata/test1.yaml",
@@ -441,8 +467,8 @@ var _ = Describe("Manager", Ordered, func() {
 				},
 			}))
 
-			By("having 'defaulted' annotation added on pod")
-			Expect(pod.Annotations[apiv1.AnnotationDefaulted]).Should(Equal("true"))
+			By("having 'modified' annotation added on pod")
+			Expect(pod.Annotations[apiv1.AnnotationModified]).Should(Equal("true"))
 
 			By("having KYMA_FIPS_MODE_ENABLED env var set on all containers")
 			allContainers := append(pod.Spec.Containers, pod.Spec.InitContainers...)
@@ -453,10 +479,16 @@ var _ = Describe("Manager", Ordered, func() {
 				}))
 			}
 
+			By("having KYMA_LANDSCAPE env var set on all containers")
+			for _, container := range allContainers {
+				Expect(container.Env).Should(ContainElement(corev1.EnvVar{
+					Name:  apiv1.EnvKymaLandscape,
+					Value: "TEST",
+				}))
+			}
 		})
 
 		It("should work with all features inactive", func() {
-
 			By("applying the deployment in opt in namespace")
 			cmd := exec.Command("kubectl", "apply",
 				"-f", "./test/e2e/testdata/test3.yaml",
@@ -484,7 +516,7 @@ var _ = Describe("Manager", Ordered, func() {
 			pod, err := utils.ToPod(output)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(pod.Spec.Containers[0].Image).Should(HavePrefix("localhost:5002"))
-			Expect(pod.Annotations[apiv1.AnnotationDefaulted]).ShouldNot(Equal("true"))
+			Expect(pod.Annotations[apiv1.AnnotationModified]).ShouldNot(Equal("true"))
 			Expect(pod.Spec.Containers[0].VolumeMounts).ShouldNot(ContainElement(corev1.VolumeMount{
 				Name:      "rt-bootstrapper-certs",
 				ReadOnly:  true,
@@ -494,8 +526,8 @@ var _ = Describe("Manager", Ordered, func() {
 			By("not having cluster-trust-bundle volume created on pod")
 			Expect(len(pod.Spec.Volumes)).Should(Equal(1))
 
-			By("not having 'defaulted' annotation added on pod")
-			Expect(pod.Annotations[apiv1.AnnotationDefaulted]).Should(BeEmpty())
+			By("not having 'modified' annotation added on pod")
+			Expect(pod.Annotations[apiv1.AnnotationModified]).Should(BeEmpty())
 
 			By("not havling KYMA_FIPS_MODE_ENABLED env var set on all containers")
 			allContainers := append(pod.Spec.Containers, pod.Spec.InitContainers...)
@@ -503,6 +535,14 @@ var _ = Describe("Manager", Ordered, func() {
 				Expect(container.Env).ShouldNot(ContainElement(corev1.EnvVar{
 					Name:  apiv1.EnvKymaFipsModeEnabled,
 					Value: "true",
+				}))
+			}
+
+			By("not having KYMA_LANDSCAPE env var set on any container")
+			for _, container := range allContainers {
+				Expect(container.Env).ShouldNot(ContainElement(corev1.EnvVar{
+					Name:  apiv1.EnvKymaLandscape,
+					Value: "TEST",
 				}))
 			}
 		})

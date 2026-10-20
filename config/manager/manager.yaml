@@ -54,7 +54,13 @@ spec:
       - command:
         - /manager
         args:
+          - --image-pull-secret-name=registry-credentials
+          - --image-pull-secret-namespace=kyma-system
+          - --secret-sync-interval=1m
+          - --config-map-name=rt-bootstrapper-config
+          - --config-map-namespace=kyma-system
           - --health-probe-bind-address=:8081
+          - --landscape=TEST
         image: controller:latest
         name: manager
         ports: []

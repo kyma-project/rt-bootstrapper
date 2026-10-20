@@ -28,8 +28,13 @@ go.work
 *.swo
 *~
 
+# macOS metadata
+.DS_Store
+
 # installer output
 dist
 
 # vendored files
 vendor
+.superpowers/
+.worktrees

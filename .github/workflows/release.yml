@@ -1,4 +1,4 @@
-name: Generate release artifacts
+name: rt-bootstrapper release
 
 on:
   push:
@@ -6,35 +6,30 @@ on:
       - '*'  # Trigger on tag pushes
 
 jobs:
-  setup:
+  tests:
     permissions:
       contents: read
-    runs-on: ubuntu-latest
-    outputs:
-      # the tag name (or empty string)
-      tag: ${{ steps.tag.outputs.tag || '' }}
-      # experimental tag derived from tag (or empty string)
-      image_registry: europe-docker.pkg.dev/kyma-project/prod/rt-bootstrapper
-    steps:
-      - name: Checkout push/tag ref
-        uses: actions/checkout@v5
+    uses: ./.github/workflows/test.yml
 
-      - id: tag
-        if: github.event_name == 'push' && github.ref_type == 'tag'
-        run: echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+  build-image:
+    needs: tests
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/build_image.yml
 
   generate-release:
-    needs: setup
-    if: needs.setup.outputs.tag != ''
+    needs: build-image
+    if: needs.build-image.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write  # Needed for creating releases and uploading assets
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'go.mod'
 
@@ -44,13 +39,25 @@ jobs:
           make build-installer 
           cp ./dist/install.yaml rt-bootstrapper.yaml
         env:
-          IMG: ${{ needs.setup.outputs.image_registry }}:${{ needs.setup.outputs.tag }}
+          IMG: europe-docker.pkg.dev/kyma-project/prod/rt-bootstrapper:${{ github.ref_name }}
 
       - name: Create Release and Generate Notes
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             ./rt-bootstrapper.yaml
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  upload-release-report:
+    needs: generate-release
+    if: needs.generate-release.result == 'success'
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/upload-release-report.yaml
+    with:
+      release_version: ${{ github.ref_name }}
+    secrets:
+      RELEASE_LOG_UPLOADER_SA: ${{ secrets.RELEASE_LOG_UPLOADER_SA }}

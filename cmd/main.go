@@ -17,13 +17,19 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"path"
+	"slices"
 	"time"
+
+	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/kyma-project/rt-bootstrapper/internal/webhook/certificate"
 	"k8s.io/client-go/util/retry"
@@ -45,6 +51,7 @@ import (
 	//"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/kyma-project/rt-bootstrapper/internal/controller"
+	"github.com/kyma-project/rt-bootstrapper/internal/ctb"
 	webhook_v1 "github.com/kyma-project/rt-bootstrapper/internal/webhook/v1"
 	apiv1 "github.com/kyma-project/rt-bootstrapper/pkg/api/v1"
 	// +kubebuilder:scaffold:imports
@@ -55,7 +62,6 @@ const (
 	webhookServerKeyName     = "tls.key"
 	webhookServerCertName    = "tls.crt"
 	flagWebhookName          = "webhook-name"
-	configFilePath           = "/rt-bootstrapper-config.json"
 	patchFieldManagerName    = "rt-bootstrapper-webhook"
 )
 
@@ -66,16 +72,9 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(certificatesv1beta1.AddToScheme(scheme))
 
 	// +kubebuilder:scaffold:scheme
-}
-
-func readConfig(name string) (*apiv1.Config, error) {
-	file, err := os.Open(name)
-	if err != nil {
-		return nil, err
-	}
-	return apiv1.NewConfig(file)
 }
 
 // nolint:gocyclo
@@ -89,6 +88,12 @@ func main() {
 	var tlsOpts []func(*tls.Config)
 
 	var webhookCfgName string
+	var imagePullSecretName string
+	var imagePullSecretNamespace string
+	var secretSyncIntervalOpt string
+	var configMapName string
+	var configMapNamespace string
+	var landscape string
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -109,21 +114,28 @@ func main() {
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
 
+	flag.StringVar(&imagePullSecretName, "image-pull-secret-name", "registry-credentials", "The name of the secret containing credentials to a private docker registry.")
+	flag.StringVar(&imagePullSecretNamespace, "image-pull-secret-namespace", "kyma-system", "The namespace of the secret containing credentials to a private docker registry.")
+	flag.StringVar(&configMapName, "config-map-name", "rt-bootstrapper-config", "The name of the config map containing rt-bootstrapper configuration")
+	flag.StringVar(&configMapNamespace, "config-map-namespace", "kyma-system", "The namespace of the config-map containing rt-bootstrapper configuration.")
+	flag.StringVar(&secretSyncIntervalOpt, "secret-sync-interval", "1m", "The duration of secret synchronisation.")
+	flag.StringVar(&landscape, "landscape", "", "The landscape identifier to inject into workload pods (e.g., NS2, CN).")
+
 	opts := zap.Options{
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
+	secretSyncInterval, err := time.ParseDuration(secretSyncIntervalOpt)
+	if err != nil {
+		setupLog.Error(err, "failed to parse 'secret-sync-interval' option value")
+		os.Exit(1)
+	}
+
 	slog.SetLogLoggerLevel(slog.LevelDebug)
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
-
-	cfg, err := readConfig(configFilePath)
-	if err != nil {
-		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
-	}
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
@@ -219,6 +231,14 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "1d97a37c.kyma-project.io",
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				// Pods are only accessed by RestartStalePods which lists
+				// per-namespace.  Bypassing the cache avoids a cluster-scoped
+				// List/Watch that our namespaced RoleBindings cannot satisfy.
+				DisableFor: []client.Object{&corev1.Pod{}},
+			},
+		},
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the
 		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
@@ -230,30 +250,99 @@ func main() {
 		// if you are doing or is intended to do any operation such as perform cleanups
 		// after the manager stops then its usage might be unsafe.
 		// LeaderElectionReleaseOnCancel: true,
+
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	if err := webhook_v1.SetupPodWebhookWithManager(mgr, cfg); err != nil {
+	readConfig := func(ctx context.Context) (*apiv1.Config, error) {
+		var rtBootstrapperConfig corev1.ConfigMap
+		if err := rtClient.Get(ctx, client.ObjectKey{
+			Name:      configMapName,
+			Namespace: configMapNamespace,
+		}, &rtBootstrapperConfig); err != nil {
+			return nil, err
+		}
+
+		rawConfig, found := rtBootstrapperConfig.Data[apiv1.ConfigMapKey]
+		if !found {
+			return nil, fmt.Errorf("configuration not found")
+		}
+
+		b := bytes.NewBuffer([]byte(rawConfig))
+		return apiv1.NewConfig(b)
+	}
+
+	// TODO: discuss to pass available features and default features via command line argument
+	cfg, err := readConfig(context.Background())
+	if err != nil {
+		setupLog.Error(err, "unable to read config")
+		os.Exit(1)
+	}
+
+	if slices.Contains(cfg.AvailableFeatures, apiv1.AnnotationSetLandscape) && landscape == "" {
+		setupLog.Error(fmt.Errorf("--landscape flag is required when %s is in availableFeatures", apiv1.AnnotationSetLandscape), "invalid configuration")
+		os.Exit(1)
+	}
+
+	hashHolder := ctb.NewHashHolder()
+
+	if cfg.ClusterTrustBundleMapping != nil && slices.Contains(cfg.AvailableFeatures, apiv1.AnnotationAddClusterTrustBundle) {
+		if err := ctb.PreComputeHash(context.Background(), rtClient, cfg.ClusterTrustBundleMapping.Name, hashHolder); err != nil {
+			setupLog.Error(err, "failed to pre-compute CTB hash (CTB may not exist yet)")
+			// ponytail: non-fatal — hash stays empty until CTB appears and watcher fires
+		}
+	}
+
+	whOpts := webhook_v1.SetupPodWebhookWithManagerOpts{
+		AvailableFeatures:        cfg.AvailableFeatures,
+		NamespaceDefaultFeatures: cfg.NamespaceDefaultFeatures,
+		GetConfig:                readConfig,
+		ImagePullSecretName:      imagePullSecretName,
+		Landscape:                landscape,
+		HashHolder:               hashHolder,
+	}
+
+	if err := webhook_v1.SetupPodWebhookWithManager(mgr, whOpts); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Pod")
 		os.Exit(1)
+	}
+
+	if cfg.ClusterTrustBundleMapping != nil && slices.Contains(cfg.AvailableFeatures, apiv1.AnnotationAddClusterTrustBundle) {
+		managedNamespaces := make(map[string]struct{})
+		if cfg.NamespaceFeatures != nil {
+			for ns := range *cfg.NamespaceFeatures {
+				managedNamespaces[ns] = struct{}{}
+			}
+		}
+		if err := (&ctb.CTBWatcher{
+			Client:            mgr.GetClient(),
+			Scheme:            mgr.GetScheme(),
+			CTBName:           cfg.ClusterTrustBundleMapping.Name,
+			HashHolder:        hashHolder,
+			ResyncInterval:    parseDurationOrDefault(cfg.ClusterTrustBundleMapping.ResyncInterval, 5*time.Minute),
+			ManagedNamespaces: managedNamespaces,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "CTBWatcher")
+			os.Exit(1)
+		}
 	}
 
 	if err := (&controller.SecretReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		NamespacedName: types.NamespacedName{
-			Name:      cfg.ImagePullSecretName,
-			Namespace: cfg.ImagePullSecretNamespace,
+			Name:      imagePullSecretName,
+			Namespace: imagePullSecretNamespace,
 		},
-		SecretSyncInterval: time.Duration(cfg.SecretSyncInterval),
+		SecretSyncInterval: time.Duration(secretSyncInterval),
+		GetConfig:          readConfig,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Secret")
 		os.Exit(1)
 	}
-	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", webhookServer.StartedChecker()); err != nil {
 		setupLog.Error(err, "unable to set up health check")
@@ -270,4 +359,17 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+
+	// +kubebuilder:scaffold:builder
+}
+
+func parseDurationOrDefault(s string, def time.Duration) time.Duration {
+	if s == "" {
+		return def
+	}
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return def
+	}
+	return d
 }

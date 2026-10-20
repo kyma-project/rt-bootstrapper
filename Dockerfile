@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM --platform=$BUILDPLATFORM golang:1.25.6-alpine3.23 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27.2-alpine3.24 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -29,5 +29,7 @@ FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=builder /workspace/manager .
 USER 65532:65532
+
+ENV GODEBUG=fips140=only,tlsmlkem=0
 
 ENTRYPOINT ["/manager"]

@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 	"time"
 
@@ -42,6 +43,7 @@ type SecretReconciler struct {
 	Scheme *runtime.Scheme
 	types.NamespacedName
 	SecretSyncInterval time.Duration
+	GetConfig          func(context.Context) (*apiv1.Config, error)
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;patch
@@ -51,6 +53,14 @@ const (
 )
 
 func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+
+	cfg, err := r.GetConfig(ctx)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to read config: %w", err)
+	}
+	if !slices.Contains(cfg.AvailableFeatures, apiv1.AnnotationSetPullSecret) {
+		return ctrl.Result{}, nil
+	}
 
 	isMasterSecretUpdated := req.Namespace == r.Namespace && req.Name == r.Name
 	isCredentialsSecretUpdated := (req.Namespace != "" && req.Namespace != r.Namespace) && req.Name == r.Name
@@ -90,7 +100,7 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			credentialsSecret := createCredentialSecret(r.Name, namespace.Name,
 				masterSecret.Data[corev1.DockerConfigJsonKey])
 
-			err := r.Patch(ctx, credentialsSecret, client.Apply, &client.PatchOptions{
+			err := r.Patch(ctx, credentialsSecret, client.Apply, &client.PatchOptions{ //nolint:staticcheck
 				FieldManager: apiv1.FiledManager,
 			})
 
@@ -119,7 +129,7 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		credentialsSecret := createCredentialSecret(r.Name, req.Namespace,
 			masterSecret.Data[corev1.DockerConfigJsonKey])
 
-		return ctrl.Result{}, r.Patch(ctx, credentialsSecret, client.Apply, &client.PatchOptions{
+		return ctrl.Result{}, r.Patch(ctx, credentialsSecret, client.Apply, &client.PatchOptions{ //nolint:staticcheck
 			FieldManager: apiv1.FiledManager,
 			Force:        ptr.To(true),
 		})
@@ -131,7 +141,7 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		credentialsSecret := createCredentialSecret(r.Name, req.Name,
 			masterSecret.Data[corev1.DockerConfigJsonKey])
 
-		return ctrl.Result{}, r.Patch(ctx, credentialsSecret, client.Apply, &client.PatchOptions{
+		return ctrl.Result{}, r.Patch(ctx, credentialsSecret, client.Apply, &client.PatchOptions{ //nolint:staticcheck
 			FieldManager: apiv1.FiledManager,
 		})
 	}

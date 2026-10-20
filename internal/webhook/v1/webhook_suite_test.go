@@ -108,13 +108,20 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	err = SetupPodWebhookWithManager(mgr, &apiv1.Config{
+	webhookCfg := &apiv1.Config{
 		Overrides: map[string]string{
 			"replace.me": "ghcr.io",
 		},
+	}
+	whOpts := SetupPodWebhookWithManagerOpts{
 		ImagePullSecretName:      "test-me-plz",
-		ImagePullSecretNamespace: "kyma-system",
-	})
+		NamespaceDefaultFeatures: webhookCfg.NamespaceDefaultFeatures,
+		GetConfig: func(_ context.Context) (*apiv1.Config, error) {
+			return webhookCfg, nil
+		},
+	}
+
+	err = SetupPodWebhookWithManager(mgr, whOpts)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:webhook

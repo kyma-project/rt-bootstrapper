@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="540"
+     font-family="system-ui, -apple-system, 'Segoe UI', Arial, sans-serif" font-size="10">
+
+  <defs>
+    <marker id="solid" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="5" markerHeight="5" orient="auto">
+      <polygon points="0,1 9,5 0,9" fill="#333"/>
+    </marker>
+    <marker id="open" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="5" markerHeight="5" orient="auto">
+      <polyline points="0,1 9,5 0,9" fill="none" stroke="#555" stroke-width="1.5"/>
+    </marker>
+  </defs>
+
+  <rect width="880" height="540" fill="white"/>
+
+  <!-- ── Participant boxes ── -->
+
+  <rect x="15" y="15" width="150" height="40" rx="4"
+        fill="#dce8f5" stroke="#2c5f9e" stroke-width="1.5"/>
+  <text x="90" y="40" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a3a6e">KLM/Operator/User</text>
+
+  <rect x="195" y="15" width="150" height="40" rx="4"
+        fill="#dce8f5" stroke="#2c5f9e" stroke-width="1.5"/>
+  <text x="270" y="40" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a3a6e">API Server</text>
+
+  <rect x="385" y="15" width="250" height="40" rx="4"
+        fill="#fdebd0" stroke="#cc7700" stroke-width="1.5"/>
+  <text x="510" y="33" text-anchor="middle" font-size="11" font-weight="bold" fill="#7d4000">Runtime Bootstrapper</text>
+  <text x="510" y="49" text-anchor="middle" font-size="11" font-weight="bold" fill="#7d4000">Webhook</text>
+
+  <rect x="660" y="15" width="200" height="40" rx="4"
+        fill="#d5f5e3" stroke="#2d7a44" stroke-width="1.5"/>
+  <text x="760" y="40" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a5e2e">Kubernetes API</text>
+
+  <!-- ── Lifelines ── -->
+  <line x1="90"  y1="55" x2="90"  y2="515" stroke="#ccc" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="270" y1="55" x2="270" y2="515" stroke="#ccc" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="510" y1="55" x2="510" y2="515" stroke="#ccc" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="760" y1="55" x2="760" y2="515" stroke="#ccc" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- ── 1: KLM → API Server: create Pod ── -->
+  <line x1="90" y1="85" x2="270" y2="85"
+        stroke="#333" stroke-width="1.5" marker-end="url(#solid)"/>
+  <text x="180" y="80" text-anchor="middle" font-size="9.5" fill="#222">create Pod</text>
+
+  <!-- ── 2: API Server → RT Webhook: POST /mutate ── -->
+  <line x1="270" y1="117" x2="510" y2="117"
+        stroke="#333" stroke-width="1.5" marker-end="url(#solid)"/>
+  <text x="390" y="112" text-anchor="middle" font-size="9.5" fill="#222">POST /mutate</text>
+  <text x="390" y="127" text-anchor="middle" font-size="9" fill="#888">(Pod JSON)</text>
+
+  <!-- ── 3: RT Webhook → Kubernetes API: GET Namespace ── -->
+  <line x1="510" y1="153" x2="760" y2="153"
+        stroke="#333" stroke-width="1.5" marker-end="url(#solid)"/>
+  <text x="635" y="148" text-anchor="middle" font-size="9.5" fill="#222">GET namespace</text>
+
+  <!-- ── 4: Kubernetes API → RT Webhook: namespace annot. ── -->
+  <line x1="760" y1="175" x2="510" y2="175"
+        stroke="#555" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#open)"/>
+  <text x="635" y="170" text-anchor="middle" font-size="9.5" fill="#555">namespace annotation</text>
+
+  <!-- ── 5: RT Webhook → Kubernetes API: GET ConfigMap ── -->
+  <line x1="510" y1="201" x2="760" y2="201"
+        stroke="#333" stroke-width="1.5" marker-end="url(#solid)"/>
+  <text x="635" y="196" text-anchor="middle" font-size="9.5" fill="#222">GET ConfigMap</text>
+
+  <!-- ── 6: Kubernetes API → RT Webhook: rt-bootstrapper-cfg ── -->
+  <line x1="760" y1="223" x2="510" y2="223"
+        stroke="#555" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#open)"/>
+  <text x="635" y="218" text-anchor="middle" font-size="9.5" fill="#555">rt-bootstrapper-cfg</text>
+
+  <!-- ── RT Webhook activation box ── -->
+  <rect x="497" y="235" width="26" height="200" rx="2"
+        fill="#ffe8c0" stroke="#cc7700" stroke-width="1"/>
+
+  <!-- ── Processing note block ── -->
+  <rect x="530" y="234" width="200" height="168" rx="4"
+        fill="#fffde7" stroke="#ccaa00" stroke-width="1"/>
+  <text x="543" y="252" font-size="9.5" font-weight="bold" fill="#555">Evaluate annotations:</text>
+  <text x="551" y="266" font-size="9" fill="#666">1. namespaceFeatures</text>
+  <text x="551" y="279" font-size="9" fill="#666">2. namespace annotations</text>
+  <text x="551" y="292" font-size="9" fill="#666">3. Pod annotations</text>
+  <line x1="535" y1="302" x2="724" y2="302" stroke="#ddc040" stroke-width="0.8"/>
+  <text x="543" y="316" font-size="9.5" font-weight="bold" fill="#555">Run active defaulters:</text>
+  <text x="551" y="330" font-size="9" fill="#666">• AlterImgRegistry</text>
+  <text x="551" y="343" font-size="9" fill="#666">• AddImagePullSecrets</text>
+  <text x="551" y="356" font-size="9" fill="#666">• AddClusterTrustBundle</text>
+  <text x="551" y="369" font-size="9" fill="#666">• SetFipsMode</text>
+
+  <!-- ── 7: RT Webhook → API Server: AdmissionResp ── -->
+  <line x1="497" y1="435" x2="270" y2="435"
+        stroke="#555" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#open)"/>
+  <text x="383" y="430" text-anchor="middle" font-size="9.5" fill="#555">AdmissionResp (JSONPatch)</text>
+
+  <!-- ── API Server internal note ── -->
+  <text x="383" y="447" text-anchor="middle" font-size="9" fill="#888" font-style="italic">applies patch, creates Pod</text>
+
+  <!-- ── 8: API Server → KLM/Operator/User: Pod created ── -->
+  <line x1="270" y1="481" x2="90" y2="481"
+        stroke="#555" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#open)"/>
+  <text x="180" y="476" text-anchor="middle" font-size="9.5" fill="#555">Pod created</text>
+
+  <!-- ── Bottom lifeline caps ── -->
+  <rect x="75"  y="515" width="30" height="12" rx="2" fill="#dce8f5" stroke="#2c5f9e" stroke-width="1.5"/>
+  <rect x="255" y="515" width="30" height="12" rx="2" fill="#dce8f5" stroke="#2c5f9e" stroke-width="1.5"/>
+  <rect x="495" y="515" width="30" height="12" rx="2" fill="#fdebd0" stroke="#cc7700" stroke-width="1.5"/>
+  <rect x="745" y="515" width="30" height="12" rx="2" fill="#d5f5e3" stroke="#2d7a44" stroke-width="1.5"/>
+
+</svg>

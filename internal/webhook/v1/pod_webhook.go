@@ -20,29 +20,51 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
+	"strings"
 
+	"github.com/kyma-project/rt-bootstrapper/internal/ctb"
 	apiv1 "github.com/kyma-project/rt-bootstrapper/pkg/api/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+type SetupPodWebhookWithManagerOpts struct {
+	AvailableFeatures        []string
+	NamespaceDefaultFeatures func(string) map[string]string
+	ImagePullSecretName      string
+	Landscape                string
+	HashHolder               *ctb.HashHolder
+	GetConfig
+}
+
 // SetupPodWebhookWithManager registers the webhook for Pod in the manager.
-func SetupPodWebhookWithManager(mgr ctrl.Manager, cfg *apiv1.Config) error {
-
-	slog.Info("setting up webhook", "cfg", cfg)
-
-	nsf := apiv1.NamespaceFeatures{}
-	if cfg.NamespaceFeatures != nil {
-		nsf = *cfg.NamespaceFeatures
-		slog.Info("default features configuration found", "default-features", nsf.Features)
+func SetupPodWebhookWithManager(mgr ctrl.Manager, opts SetupPodWebhookWithManagerOpts) error {
+	type defaulterEntry struct {
+		annotation string
+		defaulter  PodDefaulter
 	}
 
-	d1 := BuildPodDefaulterAddImagePullSecrets(cfg.ImagePullSecretName, nsf)
-	d2 := BuildPodDefaulterAlterImgRegistry(cfg.Overrides, nsf)
-	d3 := BuildDefaulterFipsMode(nsf)
+	defaulterEntries := []defaulterEntry{
+		{annotation: apiv1.AnnotationAlterImgRegistry, defaulter: BuildPodDefaulterAlterImgRegistry()},
+		{annotation: apiv1.AnnotationSetPullSecret, defaulter: BuildPodDefaulterAddImagePullSecrets(opts.ImagePullSecretName)},
+		{annotation: apiv1.AnnotationAddClusterTrustBundle, defaulter: BuildDefaulterAddClusterTrustBundle(opts.HashHolder)},
+		{annotation: apiv1.AnnotationSetFipsMode, defaulter: BuildDefaulterFipsMode()},
+		{annotation: apiv1.AnnotationSetLandscape, defaulter: BuildDefaulterSetLandscape(opts.Landscape)},
+	}
+
+	// prepare available defaulters
+	defaulters := slices.Collect(func(yield func(PodDefaulter) bool) {
+		for _, d := range defaulterEntries {
+			if slices.Contains(opts.AvailableFeatures, d.annotation) {
+				if !yield(d.defaulter) {
+					return
+				}
+			}
+		}
+	})
 
 	getNamespace := func(ctx context.Context, name string) (map[string]string, error) {
 		var ns corev1.Namespace
@@ -62,29 +84,22 @@ func SetupPodWebhookWithManager(mgr ctrl.Manager, cfg *apiv1.Config) error {
 	}
 
 	defaulter := podCustomDefaulter{
-		defaulters: []func(*corev1.Pod, map[string]string) (bool, error){
-			d1,
-			d2,
-			d3,
-		},
-		GetNsAnnotations: getNamespace,
+		defaulters:               defaulters,
+		GetConfig:                opts.GetConfig,
+		GetNsAnnotations:         getNamespace,
+		availableFeatures:        opts.AvailableFeatures,
+		namespaceDefaultFeatures: opts.NamespaceDefaultFeatures,
 	}
 
-	// conditional defaulters
-
-	if cfg.ClusterTrustBundleMapping != nil {
-		d4 := BuildDefaulterAddClusterTrustBundle(*cfg.ClusterTrustBundleMapping, nsf)
-		defaulter.defaulters = append(defaulter.defaulters, d4)
-	}
-
-	return ctrl.NewWebhookManagedBy(mgr).For(&corev1.Pod{}).
+	return ctrl.NewWebhookManagedBy(mgr, &corev1.Pod{}).
 		WithDefaulter(&defaulter).
 		Complete()
 }
 
-// +kubebuilder:webhook:path=/mutate--v1-pod,mutating=true,failurePolicy=fail,sideEffects=None,groups="",resources=pods,verbs=create,versions=v1,name=mpod-v1.kb.io,admissionReviewVersions=v1
+type GetConfig = func(context.Context) (*apiv1.Config, error)
 
-// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
+// +kubebuilder:webhook:path=/mutate--v1-pod,mutating=true,failurePolicy=fail,sideEffects=None,groups="",resources=pods,verbs=create,versions=v1,name=mpod-v1.kb.io,admissionReviewVersions=v1
+// +kubebuilder:rbac:groups="",resources=namespaces;configmaps,verbs=get;list;watch
 // +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=mutatingwebhookconfigurations,verbs=get;patch
 
 // podCustomDefaulter struct is responsible for setting default values on the custom resource of the
@@ -93,16 +108,39 @@ func SetupPodWebhookWithManager(mgr ctrl.Manager, cfg *apiv1.Config) error {
 // NOTE: The +kubebuilder:object:generate=false marker prevents controller-gen from generating DeepCopy methods,
 // as it is used only for temporary operations and does not need to be deeply copied.
 type podCustomDefaulter struct {
-	defaulters []func(*corev1.Pod, map[string]string) (bool, error)
+	namespaceDefaultFeatures func(string) map[string]string
+	availableFeatures        []string
+	defaulters               []PodDefaulter
 	GetNsAnnotations
+	GetConfig
 }
 
-var _ webhook.CustomDefaulter = &podCustomDefaulter{}
+var _ admission.Defaulter[*corev1.Pod] = &podCustomDefaulter{}
 
 type GetNsAnnotations = func(context.Context, string) (map[string]string, error)
 
+type annotationSource struct {
+	level       string
+	annotations map[string]string
+}
+
+type annotationSources []annotationSource
+
+func (s annotationSources) auditFeatures(availableFeatures []string) {
+	for _, src := range s {
+		for key := range src.annotations {
+			isAvailableFeature := slices.Contains(availableFeatures, key)
+			isRtBootstrapperFeature := strings.HasPrefix(key, "rt-cfg.kyma-project.io/")
+			if !isAvailableFeature && isRtBootstrapperFeature {
+				slog.Warn("found inactive feature", "key", key)
+			}
+		}
+	}
+}
+
 // Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind Pod.
-func (d *podCustomDefaulter) Default(ctx context.Context, obj runtime.Object) (err error) {
+// This method uses the new type-safe interface where obj is *corev1.Pod instead of runtime.Object.
+func (d *podCustomDefaulter) Default(ctx context.Context, obj *corev1.Pod) (err error) {
 	defer func() {
 		r := recover()
 		if r == nil {
@@ -120,16 +158,23 @@ func (d *podCustomDefaulter) Default(ctx context.Context, obj runtime.Object) (e
 		}
 	}()
 
-	pod, ok := obj.(*corev1.Pod)
-	if !ok {
-		return fmt.Errorf("expected an Pod object but got %T", obj)
-	}
+	pod := obj
 
 	nsAnnotations, err := d.GetNsAnnotations(ctx, pod.Namespace)
 	if err != nil {
 		slog.Error("unable to get namespace", "error", err)
 		return err
 	}
+
+	namespaceDefaultFeatures := d.namespaceDefaultFeatures(pod.Namespace)
+
+	// audit for inactive features
+	annotationSources := annotationSources{
+		{level: "namespace", annotations: namespaceDefaultFeatures},
+		{level: "ns", annotations: nsAnnotations},
+		{level: "pod", annotations: pod.Annotations},
+	}
+	annotationSources.auditFeatures(d.availableFeatures)
 
 	var podDefaulted bool
 	for i, defaulter := range d.defaulters {
@@ -139,7 +184,12 @@ func (d *podCustomDefaulter) Default(ctx context.Context, obj runtime.Object) (e
 			WithGroup("for").Debug("invoking defaulter",
 			"i", fmt.Sprintf("%d", i))
 
-		podModified, err := defaulter(pod, nsAnnotations)
+		cfg, err := d.GetConfig(ctx)
+		if err != nil {
+			return err
+		}
+
+		podModified, err := defaulter(pod, nsAnnotations, cfg)
 		if err != nil {
 			return err
 		}
@@ -158,7 +208,7 @@ func (d *podCustomDefaulter) Default(ctx context.Context, obj runtime.Object) (e
 	if pod.Annotations == nil {
 		pod.Annotations = map[string]string{}
 	}
-	pod.Annotations[apiv1.AnnotationDefaulted] = "true"
+	pod.Annotations[apiv1.AnnotationModified] = "true"
 
 	return nil
 }
