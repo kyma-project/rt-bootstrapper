@@ -6,7 +6,6 @@ on:
   workflow_dispatch: # Allows manual triggering of the workflow
 
 permissions:
-  contents: write
   issues: write
   pull-requests: write
 
