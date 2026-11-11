@@ -91,13 +91,13 @@ The webhook uses `failurePolicy: Ignore`, which means any period of unresponsive
 4. Adjust resource limits or certificate configuration if needed.
 5. Notify the team at the next standup.
 
-**Critical** — < 99.5 % in a 30-day window, or any 5-minute window with 0 Ready replicas:
+**Critical** — < 99.5 % in a 30-day window, or a sustained window with 0 Ready replicas:
 1. Declare incident.
 2. Page on-call engineer.
 3. Use Kubernetes audit logs to identify all Pods created during the degraded window.
 4. Re-deploy those Pods to apply the missing mutations.
 5. Roll back the last deployment or configuration change if correlated.
-6. Post incident root-cause analysis within 48 hours.
+6. Post incident root-cause analysis.
 
 ---
 
@@ -142,12 +142,12 @@ The Secret sync controller mirrors image-pull credentials to every namespace so 
 
 **Thresholds and action plan:**
 
-**Warning** — 1–3 namespaces out of sync for more than 2 minutes:
+**Warning** — 1–3 namespaces out of sync:
 1. Verify the Secret sync controller Pod is running and reconciling.
 2. Check controller logs for API server throttling (429 errors) or other transient errors.
 3. Trigger a manual reconciliation by annotating or touching the master Secret in `kyma-system`.
 
-**Critical** — more than 3 namespaces out of sync, or any namespace out of sync for more than 5 minutes:
+**Critical** — more than 3 namespaces out of sync, or any namespace persistently out of sync:
 1. Declare incident.
 2. Identify workloads in affected namespaces currently in `ImagePullBackOff`.
 3. Manually push the Secret to affected namespaces as immediate remediation.
@@ -172,12 +172,12 @@ The webhook is called synchronously on every Pod creation. High latency directly
 
 **Thresholds and action plan:**
 
-**Warning** — p99 > 200 ms sustained for 5 minutes:
+**Warning** — p99 > 200 ms sustained:
 1. Profile the webhook handler to identify whether the delay is in ConfigMap GET, image rewriting, or Pod spec manipulation.
 2. Check for API server latency using `apiserver_request_duration_seconds`.
 3. Confirm the webhook Pod is not CPU-throttled by comparing `container_cpu_throttled_seconds_total`.
 
-**Critical** — p99 > 500 ms sustained for 5 minutes:
+**Critical** — p99 > 500 ms sustained:
 1. Declare incident.
 2. If ConfigMap GET latency is the bottleneck, evaluate switching to the informer-based in-process cache described in ADR-004.
 3. If the bottleneck is queue saturation, consider scaling up the Deployment replicas.
@@ -198,12 +198,12 @@ Even at low absolute rates, repeated errors in a specific feature path or namesp
 
 **Thresholds and action plan:**
 
-**Warning** — error rate > 0.1 % over 1 hour:
+**Warning** — error rate > 0.1 %:
 1. Check logs for panic stack traces or unhandled errors.
 2. Identify the feature type or namespace triggering the errors using label breakdown.
 3. Deploy a hotfix if the error is isolated to a single code path.
 
-**Critical** — error rate > 1.0 % over 1 hour:
+**Critical** — error rate > 1.0 %:
 1. Declare incident.
 2. Roll back to the previous stable release if errors are widespread and caused by a recent deployment.
 3. File a priority bug with a reproduction case.
@@ -279,13 +279,13 @@ Pod uptime is the operational health proxy watched by the on-call team and a pre
 
 **Thresholds and action plan:**
 
-**Warning** — < 99.9 % over 30 days, or more than 2 Pod restarts in 24 hours:
+**Warning** — < 99.9 % over 30 days, or more than 2 Pod restarts in a rolling window:
 1. Review Pod restart history via `kubectl describe pod`.
 2. Check for OOM kills (look for `OOMKilled` in `lastState`).
 3. Adjust memory requests and limits if OOM kills are confirmed.
 4. Verify the PriorityClass is applied correctly.
 
-**Critical** — < 99.5 % over 30 days, or any 5-minute window with 0 Ready replicas:
+**Critical** — < 99.5 % over 30 days, or a sustained window with 0 Ready replicas:
 1. Initiate incident response.
 2. If OOM kills are persistent, increase memory limits as an immediate fix and file a resource sizing ticket.
 3. If the PriorityClass has been removed or downgraded, restore it immediately.
@@ -305,7 +305,7 @@ If the certificate rotation lag is too long, the Kubernetes API server may attem
 
 **Thresholds and action plan:**
 
-**Warning** — lead time > 30 seconds for any observed rotation event:
+**Warning** — lead time > 30 seconds:
 1. Check `certwatcher` logs for file system notification delays.
 2. Verify cert-manager is writing the certificate atomically and not in partial writes.
 3. Confirm the `caBundle` patcher has the correct RBAC permissions (`MutatingWebhookConfiguration` update).
@@ -331,7 +331,7 @@ KIM uses ConfigMap updates to roll out new landscape configurations (new namespa
 
 **Thresholds and action plan:**
 
-**Warning** — ConfigMap GET errors detected in webhook logs for more than 2 minutes:
+**Warning** — ConfigMap GET errors detected in webhook logs:
 1. Check API server availability and RBAC permissions for the ConfigMap GET operation.
 2. Look for 403 (permissions) or 429 (rate limiting) errors in webhook logs.
 3. Verify the `rt-bootstrapper-config` ConfigMap exists and is valid.
@@ -399,11 +399,11 @@ The RT Bootstrapper's correctness guarantees (idempotent mutations, correct anno
 
 ### 7.2 Critical Open Bug Age
 
-**Definition:** Number of business days a bug labelled `priority/critical` or `priority/high` remains open without a fix merged.
+**Definition:** Age of a bug labelled `priority/critical` or `priority/high` that remains open without a fix merged.
 
 **How it is measured:**
 - Source: GitHub Issues with the relevant priority labels in this repository.
-- Measured as: age in business days from issue creation to PR merge or issue close.
+- Measured as: age from issue creation to PR merge or issue close.
 - Reported as median and maximum open age at the weekly team review.
 
 **Why it was chosen:**
@@ -411,11 +411,11 @@ Critical bugs left open degrade the operational reliability and security posture
 
 **Thresholds and action plan:**
 
-**Warning** — any critical/high bug open for more than 5 business days:
+**Warning** — any critical/high bug open without an assignee or active fix in progress:
 1. Assign the bug to a specific engineer at the next standup.
 2. Break the fix into a minimally scoped PR to avoid stalling.
 
-**Critical** — any critical bug open for more than 10 business days:
+**Critical** — any critical bug stalled without progress:
 1. Escalate to team lead.
 2. Re-evaluate whether the priority label is accurate — if it truly is critical, it displaces sprint work.
 3. Document the blocker explicitly if an external dependency is causing the delay.
@@ -436,12 +436,12 @@ MTTR is the most direct measure of the team's ability to respond to production i
 
 **Thresholds and action plan:**
 
-**Warning** — 90-day average MTTR > 4 hours:
+**Warning** — average MTTR exceeds the target threshold:
 1. Review the last 3 incidents: which step took the most time?
 2. If diagnosis was slow: invest in better Grafana dashboards, alerting context, or runbooks for the specific KPI that was breached.
 3. If remediation was slow: identify which manual steps (e.g., identify un-modified Pods, manually push Secrets) could be automated or pre-approved.
 
-**Critical** — 90-day average MTTR > 8 hours, or a single incident with MTTR > 24 hours:
+**Critical** — average MTTR significantly exceeds the target, or a single incident remains unresolved for an extended period:
 1. Hold a dedicated retrospective.
 2. Identify systemic gaps: missing runbook, insufficient alerting, unclear on-call responsibility, or external dependency.
 3. Create follow-up tasks with owners and due dates.
