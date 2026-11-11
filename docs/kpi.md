@@ -36,14 +36,12 @@ The KPIs are designed to surface technical performance, reliability, scalability
    - [5.1 Component Availability (Pod Uptime)](#51-component-availability-pod-uptime)
    - [5.2 Certificate Rotation Lead Time](#52-certificate-rotation-lead-time)
    - [5.3 Configuration Propagation Correctness](#53-configuration-propagation-correctness)
-6. [Compliance and Security KPIs](#6-compliance-and-security-kpis)
-   - [6.1 FIPS Compliance Coverage](#61-fips-compliance-coverage)
-7. [Code Quality and Maintenance KPIs](#7-code-quality-and-maintenance-kpis)
-   - [7.1 Test Coverage](#71-test-coverage)
-   - [7.2 Critical Open Bug Age](#72-critical-open-bug-age)
-   - [7.3 Mean Time to Recovery (MTTR)](#73-mean-time-to-recovery-mttr)
-8. [Measurement Infrastructure](#8-measurement-infrastructure)
-9. [Review Process and Stakeholder Alignment](#9-review-process-and-stakeholder-alignment)
+6. [Code Quality and Maintenance KPIs](#6-code-quality-and-maintenance-kpis)
+   - [6.1 Test Coverage](#61-test-coverage)
+   - [6.2 Critical Open Bug Age](#62-critical-open-bug-age)
+   - [6.3 Mean Time to Recovery (MTTR)](#63-mean-time-to-recovery-mttr)
+7. [Measurement Infrastructure](#7-measurement-infrastructure)
+8. [Review Process and Stakeholder Alignment](#8-review-process-and-stakeholder-alignment)
 
 ---
 
@@ -61,7 +59,6 @@ The KPIs are designed to surface technical performance, reliability, scalability
 | 5.1 | Component Availability (Pod Uptime) | Product Health | ≥ 99.9 % | < 99.9 % | < 99.5 % |
 | 5.2 | Certificate Rotation Lead Time | Product Health | ≤ 30 s | > 30 s | > 120 s |
 | 5.3 | Configuration Propagation Correctness | Product Health | 100 % correct at next Pod creation | stale reads > 2 min | systematic stale config |
-| 6.1 | FIPS Compliance Coverage | Security | 100 % | N/A | < 100 % |
 | 7.1 | Test Coverage | Quality | ≥ 80 % | < 80 % | < 70 % |
 | 7.2 | Critical Open Bug Age | Quality | ≤ 5 business days | > 5 days | > 10 days |
 | 7.3 | MTTR | Quality | ≤ 4 h | > 4 h | > 8 h |
@@ -344,34 +341,9 @@ KIM uses ConfigMap updates to roll out new landscape configurations (new namespa
 
 ---
 
-## 6. Compliance and Security KPIs
+## 6. Code Quality and Maintenance KPIs
 
-### 6.1 FIPS Compliance Coverage
-
-**Definition:** Percentage of containers in opted-in Pods that have both `KYMA_FIPS_MODE_ENABLED=true` and `FIPS_MODE_ENABLED=true` environment variables present, among all containers in Pods that have the `rt-cfg.kyma-project.io/set-fips-mode` feature active. Measured over a rolling 24-hour window.
-
-**How it is measured:**
-- Source: A scheduled compliance scan that inspects live Pod specs in FIPS-enabled namespaces, verifying the expected environment variables. This can also be implemented as a Prometheus counter emitted by the webhook on every FIPS mutation.
-
-**Why it was chosen:**
-FIPS 140 compliance is a hard regulatory requirement in certain SAP BTP landscapes. A container missing the FIPS environment variables may fall back to non-FIPS cryptographic operations, violating compliance commitments and potentially exposing the landscape to regulatory risk. Unlike other KPIs, non-compliance here has legal and contractual implications beyond operational degradation. QS-6 mandates FIPS-140 compliance; this KPI provides the runtime verification that the static binary guarantee translates into correctly configured workloads. Any deviation — however small or short-lived — must be treated as a compliance incident.
-
-**Thresholds and action plan:**
-
-**Warning** — N/A. Any gap below 100 % is a compliance incident.
-
-**Critical** — any container in a FIPS-enabled namespace is missing the required environment variables:
-1. Immediately identify and restart the non-compliant Pods to trigger re-mutation.
-2. If systematic, halt further Pod creation in affected FIPS namespaces until root cause is resolved.
-3. Notify the security and compliance team; document the deviation window and affected workloads for audit purposes.
-4. Trace root cause: was it a webhook availability gap (K-01), a ConfigMap misconfiguration (K-05.3), or a code defect (K-03)?
-5. Add a targeted E2E test to cover the specific failure scenario.
-
----
-
-## 7. Code Quality and Maintenance KPIs
-
-### 7.1 Test Coverage
+### 6.1 Test Coverage
 
 **Definition:** Percentage of RT Bootstrapper Go code (excluding generated files and test files themselves) covered by unit and integration tests.
 
@@ -397,7 +369,7 @@ The RT Bootstrapper's correctness guarantees (idempotent mutations, correct anno
 
 ---
 
-### 7.2 Critical Open Bug Age
+### 6.2 Critical Open Bug Age
 
 **Definition:** Age of a bug labelled `priority/critical` or `priority/high` that remains open without a fix merged.
 
@@ -422,7 +394,7 @@ Critical bugs left open degrade the operational reliability and security posture
 
 ---
 
-### 7.3 Mean Time to Recovery (MTTR)
+### 6.3 Mean Time to Recovery (MTTR)
 
 **Definition:** Average time from the point an incident is declared (or a critical alert fires) to the point the affected KPI returns within its normal threshold.
 
@@ -448,7 +420,7 @@ MTTR is the most direct measure of the team's ability to respond to production i
 
 ---
 
-## 8. Measurement Infrastructure
+## 7. Measurement Infrastructure
 
 ### Data Sources
 
@@ -478,7 +450,7 @@ Prometheus alerting rules should be defined for all KPIs measurable in real time
 
 ---
 
-## 9. Review Process and Stakeholder Alignment
+## 8. Review Process and Stakeholder Alignment
 
 ### Quarterly KPI Review
 
